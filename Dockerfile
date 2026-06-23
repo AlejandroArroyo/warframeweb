@@ -48,4 +48,5 @@ ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOST=0.0.0.0
 
-CMD ["node", "packages/api/dist/index.js"]
+# Run Prisma migrations before starting
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=packages/api/prisma/schema.prisma && node packages/api/dist/index.js"]
