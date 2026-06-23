@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../api/client.js';
 import { useAuth } from '../contexts/AuthContext.js';
 import { useToast } from '../contexts/ToastContext.js';
-import { PLATFORMS } from '@warframe/shared';
+import { PLATFORMS, type Platform } from '@warframe/shared';
 
 interface Props {
   onClose: () => void;
@@ -67,7 +67,7 @@ export default function UserSettings({ onClose }: Props) {
             </label>
             <select
               value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
+               onChange={(e) => setPlatform(e.target.value as Platform)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
             >
               {PLATFORMS.map((p) => (
