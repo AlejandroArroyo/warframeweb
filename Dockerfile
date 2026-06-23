@@ -39,14 +39,11 @@ COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 
-# Remove devDependencies for smaller runtime
-RUN npm prune --omit=dev
-
 EXPOSE 3001
 
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOST=0.0.0.0
 
-# Run Prisma migrations before starting
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=packages/api/prisma/schema.prisma && node packages/api/dist/index.js"]
+# Run Prisma migrations before starting the API
+CMD ["node", "packages/api/dist/index.js"]

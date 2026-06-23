@@ -1,9 +1,25 @@
+import { execSync } from 'child_process';
 import { buildApp } from './app.js';
 import { createIO } from './plugins/socket.js';
 import { getRedis } from './lib/redis.js';
 import { config } from './config.js';
 
 async function main() {
+  // Run database migrations in production
+  if (config.NODE_ENV === 'production') {
+    try {
+      console.log('📦 Running database migrations...');
+      execSync('npx prisma migrate deploy --schema=packages/api/prisma/schema.prisma', {
+        stdio: 'inherit',
+        cwd: process.cwd(),
+      });
+      console.log('✅ Migrations applied successfully');
+    } catch (err) {
+      console.error('❌ Migration failed:', err);
+      process.exit(1);
+    }
+  }
+
   const app = await buildApp();
 
   // Start listening
