@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.js';
+import { api } from '../api/client.js';
 
 interface DevLoginModalProps {
   onClose: () => void;
@@ -30,8 +31,7 @@ export default function DevLoginModal({ onClose }: DevLoginModalProps) {
   };
 
   const handleDiscordLogin = () => {
-    const discordUrl = '/api/auth/discord';
-    window.location.href = discordUrl;
+    window.location.href = api.getDiscordAuthUrl();
   };
 
   return (
