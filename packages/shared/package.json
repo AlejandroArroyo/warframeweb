@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "rm -f tsconfig.tsbuildinfo && tsc",
+    "build": "tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"

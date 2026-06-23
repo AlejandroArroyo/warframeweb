@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
-    "build": "npm run build --workspace=@warframe/shared && npm run build --workspace=@warframe/web",
+    "build": "cd packages/shared && rm -f tsconfig.tsbuildinfo && npx tsc && cd ../web && npx vite build",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present"
