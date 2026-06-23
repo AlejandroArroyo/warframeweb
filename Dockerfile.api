@@ -1,0 +1,25 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy root config
+COPY package.json tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/api/package.json packages/api/
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY packages/shared ./packages/shared
+COPY packages/api ./packages/api
+
+# Build shared first, then generate prisma client
+RUN npm run build --workspace=packages/shared
+RUN npx prisma generate --schema=packages/api/prisma/schema.prisma
+
+# Expose port
+EXPOSE 3001
+
+# Development: use tsx watch
+CMD ["npm", "run", "dev", "--workspace=packages/api"]

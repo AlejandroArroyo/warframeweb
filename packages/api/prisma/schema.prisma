@@ -1,0 +1,249 @@
+// ============================================
+// Warframe Void Fissure - Prisma Schema
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum RelicEra {
+  Lith
+  Meso
+  Neo
+  Axi
+  Requiem
+}
+
+enum Refinement {
+  Intact
+  Exceptional
+  Flawless
+  Radiant
+}
+
+enum LobbyStatus {
+  OPEN
+  CONFIRMING
+  IN_PROGRESS
+  CLOSED
+  CANCELLED
+}
+
+enum MissionType {
+  Capture
+  Exterminate
+  Rescue
+  Spy
+  Sabotage
+  Defense
+  Survival
+  Interception
+  Excavation
+  Disruption
+  VoidFlood
+  VoidCascade
+  VoidArmageddon
+}
+
+enum Platform {
+  PC
+  PS4
+  PS5
+  XB1
+  XSX
+  SWITCH
+}
+
+enum ReportReason {
+  LEECHING
+  ABANDON
+  TOXICITY
+  SCAM
+  MULTI_ACCOUNT
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  DISMISSED
+  ACTION_TAKEN
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id            String     @id @default(cuid())
+  discordId     String?    @unique
+  username      String     @unique
+  platform      Platform   @default(PC)
+  masteryRank   Int        @default(0)
+  reputation    Int        @default(0)
+  isBanned      Boolean    @default(false)
+  isAdmin       Boolean    @default(false)
+  banReason     String?
+  bannedUntil   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  hosts              Lobby[]              @relation("Host")
+  participants       LobbyParticipant[]
+  runsCompleted      Run[]
+  reportsMade        Report[]             @relation("Reporter")
+  reportsReceived    Report[]             @relation("ReportedUser")
+  bans               Ban[]                @relation("BannedUser")
+  bansGiven          Ban[]                @relation("BannedBy")
+  banAppeals         BanAppeal[]
+
+  @@index([discordId])
+  @@index([username])
+}
+
+model Relic {
+  id        String     @id @default(cuid())
+  era       RelicEra
+  name      String
+
+  @@unique([era, name])
+  @@index([era])
+}
+
+model RotationGroup {
+  id          String   @id @default(cuid())
+  relicEra    RelicEra
+  relicName   String
+  totalRounds Int      @default(4)
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  lobbies Lobby[]
+
+  @@index([createdAt])
+}
+
+model Lobby {
+  id            String       @id @default(cuid())
+  title         String
+  status        LobbyStatus  @default(OPEN)
+  missionType   MissionType  @default(Capture)
+  squadSize     Int          @default(4)
+  isRadshare    Boolean      @default(false)
+  relicEra      RelicEra
+  relicName     String?
+  refinement    Refinement?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Rotación (staggered runs)
+  rotationGroupId String?
+  rotationGroup   RotationGroup? @relation(fields: [rotationGroupId], references: [id])
+  rotationRound   Int            @default(1)
+  rotationTotal   Int            @default(4)
+
+  hostId       String
+  host         User              @relation("Host", fields: [hostId], references: [id])
+  participants LobbyParticipant[]
+  runs         Run[]
+  reports      Report[]
+
+  @@index([status])
+  @@index([relicEra])
+  @@index([missionType])
+  @@index([createdAt])
+  @@index([rotationGroupId])
+}
+
+model LobbyParticipant {
+  id            String      @id @default(cuid())
+  joinedAt      DateTime    @default(now())
+  confirmed     Boolean     @default(false)
+  ready         Boolean     @default(false)
+  refinement    Refinement?
+
+  userId  String
+  user    User    @relation(fields: [userId], references: [id])
+  lobbyId String
+  lobby   Lobby   @relation(fields: [lobbyId], references: [id])
+
+  @@unique([userId, lobbyId])
+  @@index([lobbyId])
+}
+
+model Run {
+  id          String    @id @default(cuid())
+  completed   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  lobbyId String?
+  lobby   Lobby?  @relation(fields: [lobbyId], references: [id])
+  userId  String
+  user    User    @relation(fields: [userId], references: [id])
+  reports Report[]
+
+  @@index([userId])
+  @@index([lobbyId])
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  reason      ReportReason
+  description String?
+  createdAt   DateTime     @default(now())
+  status      ReportStatus @default(PENDING)
+  resolvedAt  DateTime?
+
+  reporterId   String
+  reporter     User   @relation("Reporter", fields: [reporterId], references: [id])
+  reportedId   String
+  reportedUser User   @relation("ReportedUser", fields: [reportedId], references: [id])
+  lobbyId      String?
+  lobby        Lobby? @relation(fields: [lobbyId], references: [id])
+  runId        String?
+  run          Run?   @relation(fields: [runId], references: [id])
+  bans         Ban[]
+
+  @@index([reportedId])
+  @@index([status])
+}
+
+model Ban {
+  id          String    @id @default(cuid())
+  reason      String
+  isPermanent Boolean   @default(false)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  userId     String
+  user       User   @relation("BannedUser", fields: [userId], references: [id])
+  bannedById String
+  bannedBy   User   @relation("BannedBy", fields: [bannedById], references: [id])
+  reportId   String?
+  report     Report? @relation(fields: [reportId], references: [id])
+  appeals    BanAppeal[]
+}
+
+model BanAppeal {
+  id          String    @id @default(cuid())
+  message     String
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  banId  String
+  ban    Ban    @relation(fields: [banId], references: [id])
+
+  @@unique([userId, banId])
+}

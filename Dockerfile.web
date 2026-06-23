@@ -1,0 +1,28 @@
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+# Copy root config
+COPY package.json tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/web/package.json packages/web/
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY packages/shared ./packages/shared
+COPY packages/web ./packages/web
+
+# Build shared first, then web
+RUN npm run build --workspace=packages/shared
+RUN npm run build --workspace=packages/web
+
+# Production stage with nginx
+FROM nginx:alpine
+COPY --from=build /app/packages/web/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
