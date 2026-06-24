@@ -16,7 +16,11 @@ export interface UserDTO {
   platform: Platform;
   masteryRank: number;
   reputation: number;
+  role?: import('./enums.js').UserRole;
+  warns?: number;
   isAdmin?: boolean;
+  discordId?: string;
+  createdAt?: string;
 }
 
 export interface LobbyDTO {

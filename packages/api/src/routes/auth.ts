@@ -42,6 +42,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const token = signToken({
       userId: user.id,
       username: user.username,
+      role: user.role,
       isAdmin: user.isAdmin,
     });
 
@@ -189,6 +190,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       const token = signToken({
         userId: user.id,
         username: user.username,
+        role: user.role,
         isAdmin: user.isAdmin,
         discordId: discordUser.id,
       });
@@ -229,6 +231,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         platform: true,
         masteryRank: true,
         reputation: true,
+        role: true,
+        warns: true,
         isAdmin: true,
         discordId: true,
         createdAt: true,

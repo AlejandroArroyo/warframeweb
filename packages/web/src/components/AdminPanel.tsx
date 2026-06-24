@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/client.js';
+import { useAuth } from '../contexts/AuthContext.js';
+import UserManagement from './UserManagement.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-type Tab = 'reports' | 'bans' | 'appeals';
+type Tab = 'reports' | 'bans' | 'appeals' | 'users';
 
 export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
@@ -178,22 +180,22 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-semibold text-white">Panel de Administración</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Gestión de reportes, baneos y apelaciones</p>
+            <p className="text-xs text-gray-500 mt-0.5">Gestión de reportes, baneos, apelaciones y usuarios</p>
           </div>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-lg">✕</button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-4 bg-gray-800 rounded-lg p-1">
-          {(['reports', 'bans', 'appeals'] as Tab[]).map((t) => (
+        <div className="flex gap-1 mb-4 bg-gray-800 rounded-lg p-1 flex-wrap">
+          {(['reports', 'bans', 'appeals', 'users'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 px-3 py-2 text-sm rounded-md transition-colors ${
+              className={`flex-1 px-3 py-2 text-sm rounded-md transition-colors min-w-[80px] ${
                 tab === t ? 'bg-amber-600 text-black font-medium' : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              {t === 'reports' ? '📋 Reportes' : t === 'bans' ? '🔨 Baneos' : '📩 Apelaciones'}
+              {t === 'reports' ? '📋 Reportes' : t === 'bans' ? '🔨 Baneos' : t === 'appeals' ? '📩 Apelaciones' : '👥 Usuarios'}
             </button>
           ))}
         </div>
@@ -395,6 +397,13 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ============= USERS TAB ============= */}
+        {tab === 'users' && (
+          <div>
+            <UserManagement />
           </div>
         )}
 

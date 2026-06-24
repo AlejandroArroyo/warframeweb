@@ -229,6 +229,45 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
 
+  // Admin - User Management
+  getAdminUsers: (params?: { search?: string; role?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.search) qs.set('search', params.search);
+    if (params?.role) qs.set('role', params.role);
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    return request<{
+      users: Array<import('@warframe/shared').UserDTO & { reputationTier: string }>;
+      total: number;
+      page: number;
+      hasMore: boolean;
+    }>(`/admin/users${qs.toString() ? `?${qs.toString()}` : ''}`);
+  },
+
+  getAdminUserDetail: (id: string) =>
+    request<{
+      user: import('@warframe/shared').UserDTO & { reputationTier: string };
+      stats: {
+        totalRuns: number;
+        completedRuns: number;
+        totalReports: number;
+        totalBans: number;
+        totalWarnings: number;
+      };
+    }>(`/admin/users/${id}`),
+
+  changeUserRole: (userId: string, role: 'MODERATOR' | 'ADMIN') =>
+    request<import('@warframe/shared').UserDTO>(`/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+
+  warnUser: (userId: string, reason: string) =>
+    request<{ warns: number; message: string }>(`/admin/users/${userId}/warn`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
   // Kick
   kickParticipant: (lobbyId: string, userId: string, targetUserId: string) =>
     request<{ success: boolean }>(`/lobbies/${lobbyId}/kick`, {

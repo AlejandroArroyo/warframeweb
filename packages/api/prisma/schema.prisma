@@ -78,6 +78,12 @@ enum ReportStatus {
   ACTION_TAKEN
 }
 
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
 // ============================================
 // MODELS
 // ============================================
@@ -89,6 +95,8 @@ model User {
   platform      Platform   @default(PC)
   masteryRank   Int        @default(0)
   reputation    Int        @default(0)
+  role          UserRole   @default(USER)
+  warns         Int        @default(0)
   isBanned      Boolean    @default(false)
   isAdmin       Boolean    @default(false)
   banReason     String?

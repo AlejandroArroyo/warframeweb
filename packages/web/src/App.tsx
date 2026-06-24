@@ -17,6 +17,7 @@ import NotificationBell from './components/NotificationBell.js';
 import UserSettings from './components/UserSettings.js';
 import { NotificationProvider } from './contexts/NotificationContext.js';
 import type { LobbyDTO, CreateLobbyRequest } from '@warframe/shared';
+import { canManageUsers } from '@warframe/shared';
 import type { FiltersState } from './components/LobbyFilters.js';
 
 type View = 'list' | 'detail' | 'profile' | 'settings';
@@ -189,8 +190,8 @@ function AppContent() {
               </button>
             )}
 
-            {/* Admin button - solo si el usuario es admin */}
-            {isAuthenticated && user?.isAdmin && (
+            {/* Admin button - admin, moderador, o leyenda */}
+            {isAuthenticated && user && (user.isAdmin || user.role === 'MODERATOR' || canManageUsers(user as any)) && (
               <button
                 onClick={() => setShowAdmin(true)}
                 className="text-xs px-2 py-1 bg-gray-800 hover:bg-amber-800 text-amber-400 rounded transition-colors hidden sm:block border border-amber-800/30"

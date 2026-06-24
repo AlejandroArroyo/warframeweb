@@ -7,6 +7,7 @@ const JWT_EXPIRES_IN = '7d';
 export interface JWTPayload {
   userId: string;
   username: string;
+  role: string;
   isAdmin?: boolean;
   discordId?: string;
 }
