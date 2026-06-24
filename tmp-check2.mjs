@@ -1,0 +1,10 @@
+import fs from 'fs';
+const dir = fs.readdirSync('/home/alex/proyectos/warframeweb/packages/web/dist/assets/');
+const js = dir.find(f => f.endsWith('.js'));
+const c = fs.readFileSync('/home/alex/proyectos/warframeweb/packages/web/dist/assets/' + js, 'utf8');
+const m = c.match(/warframeweb-api\.onrender\.com/);
+console.log('Render URL found:', m ? m[0] : 'NO');
+const l = c.match(/localhost/);
+console.log('localhost found:', l ? l[0] : 'NO');
+const host = c.match(/window\.location\.hostname/);
+console.log('Runtime detection found:', host ? 'YES' : 'NO');

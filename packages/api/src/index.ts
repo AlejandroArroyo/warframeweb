@@ -1,15 +1,23 @@
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import { buildApp } from './app.js';
 import { createIO } from './plugins/socket.js';
 import { getRedis } from './lib/redis.js';
 import { config } from './config.js';
+
+// Ruta absoluta al schema, resuelta desde la ubicación de este archivo compilado.
+// Así funciona sin importar el working directory (Render corre desde packages/api/).
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SCHEMA_PATH = path.resolve(__dirname, '../prisma/schema.prisma');
 
 async function main() {
   // Run database migrations in production
   if (config.NODE_ENV === 'production') {
     try {
       console.log('📦 Running database migrations...');
-      execSync('npx prisma migrate deploy --schema=packages/api/prisma/schema.prisma', {
+      execSync(`npx prisma migrate deploy --schema="${SCHEMA_PATH}"`, {
         stdio: 'inherit',
         cwd: process.cwd(),
       });
