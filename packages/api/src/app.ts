@@ -20,11 +20,14 @@ export async function buildApp() {
     logger: config.NODE_ENV !== 'test',
   });
 
-  // CORS: permitir todos los orígenes temporalmente (debug)
+  // CORS: permite orígenes con soporte de wildcard (ej: *.warframeweb.pages.dev)
+  const originPatterns = config.CORS_ORIGIN.split(',').map((o) => {
+    const escaped = o.trim().replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]+?');
+    return new RegExp(`^${escaped}$`);
+  });
   await app.register(cors, {
-    origin: true,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-    credentials: true,
+    origin: originPatterns,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
   // Health check
