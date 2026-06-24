@@ -2,7 +2,17 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type { WSEvent, LobbyDTO } from '@warframe/shared';
 
-const SOCKET_URL = import.meta.env.VITE_WS_URL || '';
+// Runtime detection: misma lógica que client.ts y AuthContext
+function resolveWsUrl(): string {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return ''; // mismo origen → Vite proxy maneja WebSocket
+    }
+  }
+  return 'https://warframeweb-production.up.railway.app';
+}
+const SOCKET_URL = resolveWsUrl();
 
 export function useSocket() {
   const [connected, setConnected] = useState(false);
