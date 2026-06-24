@@ -14,6 +14,13 @@ export default function AuthCallback() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
+    const errorParam = params.get('error');
+
+    if (errorParam) {
+      setStatus('error');
+      setErrorMsg(decodeURIComponent(errorParam));
+      return;
+    }
 
     if (!token) {
       setStatus('error');

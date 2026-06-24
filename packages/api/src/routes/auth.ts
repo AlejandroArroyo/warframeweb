@@ -90,16 +90,21 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/auth/discord/callback', async (request, reply) => {
     const { code, error: oauthError } = request.query as { code?: string; error?: string };
 
+    const redirectError = (msg: string) => {
+      console.error('[Discord OAuth]', msg);
+      return reply.redirect(`${config.FRONTEND_URL}/auth/callback?error=${encodeURIComponent(msg)}`);
+    };
+
     if (oauthError) {
-      return reply.status(400).send({ error: 'OAuth error', message: oauthError });
+      return redirectError(`Discord denied authorization: ${oauthError}`);
     }
 
     if (!code) {
-      return reply.status(400).send({ error: 'Missing authorization code' });
+      return redirectError('Missing authorization code from Discord');
     }
 
     if (!config.DISCORD_CLIENT_ID || !config.DISCORD_CLIENT_SECRET) {
-      return reply.status(501).send({ error: 'Discord OAuth not configured' });
+      return redirectError('Discord OAuth not configured (missing CLIENT_ID or CLIENT_SECRET)');
     }
 
     try {
@@ -120,7 +125,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
       if (!tokenResponse.ok) {
         const errBody = await tokenResponse.text();
-        return reply.status(400).send({ error: 'Failed to exchange code', message: errBody });
+        return redirectError(`Failed to exchange code: ${errBody}`);
       }
 
       const tokenData = await tokenResponse.json() as { access_token: string };
@@ -133,7 +138,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       });
 
       if (!userResponse.ok) {
-        return reply.status(400).send({ error: 'Failed to fetch Discord user' });
+        return redirectError('Failed to fetch Discord user info');
       }
 
       const discordUser = await userResponse.json() as {
@@ -177,7 +182,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       }
 
       if (user.isBanned) {
-        return reply.status(403).send({ error: 'User is banned' });
+        return redirectError('User is banned');
       }
 
       // 4. Sign JWT and redirect to frontend
@@ -190,10 +195,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
       return reply.redirect(`${config.FRONTEND_URL}/auth/callback?token=${token}`);
     } catch (err) {
-      return reply.status(500).send({
-        error: 'Internal error during Discord authentication',
-        message: (err as Error).message,
-      });
+      const msg = (err as Error).message;
+      console.error('[Discord OAuth] Internal error:', err);
+      return redirectError(`Internal error: ${msg}`);
     }
   });
 
