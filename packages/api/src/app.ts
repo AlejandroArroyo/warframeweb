@@ -1,5 +1,4 @@
 import Fastify from 'fastify';
-import cors from '@fastify/cors';
 import { config } from './config.js';
 import { lobbyRoutes } from './routes/lobbies.js';
 import { userRoutes } from './routes/users.js';
@@ -20,14 +19,15 @@ export async function buildApp() {
     logger: config.NODE_ENV !== 'test',
   });
 
-  // CORS: permite orígenes con soporte de wildcard (ej: *.warframeweb.pages.dev)
-  const originPatterns = config.CORS_ORIGIN.split(',').map((o) => {
-    const escaped = o.trim().replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]+?');
-    return new RegExp(`^${escaped}$`);
-  });
-  await app.register(cors, {
-    origin: originPatterns,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  // CORS: permitir todos los orígenes (API pública, sin cookies)
+  app.addHook('onRequest', async (request, reply) => {
+    reply.header('Access-Control-Allow-Origin', '*');
+    reply.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (request.method === 'OPTIONS') {
+      return reply.status(204).send();
+    }
   });
 
   // Health check
