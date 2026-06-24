@@ -188,7 +188,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         discordId: discordUser.id,
       });
 
-      const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+      const frontendUrl = (process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:5173').split(',')[0].trim();
       return reply.redirect(`${frontendUrl}/auth/callback?token=${token}`);
     } catch (err) {
       return reply.status(500).send({

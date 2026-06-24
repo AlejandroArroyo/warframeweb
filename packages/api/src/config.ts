@@ -7,7 +7,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
   HOST: z.string().default('0.0.0.0'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  // Comma-separated. Soporta wildcard * para subdominios (ej: https://*.warframeweb.pages.dev)
+  CORS_ORIGIN: z.string().default('http://localhost:5173,https://*.warframeweb.pages.dev'),
 
   // JWT
   JWT_SECRET: z.string().optional(),
