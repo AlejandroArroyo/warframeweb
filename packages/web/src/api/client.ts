@@ -9,7 +9,7 @@ function resolveBaseUrl(): string {
       return '/api';
     }
   }
-  return 'https://warframeweb-api.onrender.com/api';
+  return 'https://warframeweb-production.up.railway.app/api';
 }
 const API_BASE = resolveBaseUrl();
 
