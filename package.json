@@ -9,8 +9,8 @@
     "packages/web"
   ],
   "scripts": {
-    "dev": "npm run build --workspace=@warframe/shared && npm run dev --workspaces --if-present",
-    "build": "npm run build --workspace=@warframe/shared && npm run build --workspace=@warframe/api",
+    "dev": "npx tsc -b packages/shared && npm run dev --workspaces --if-present",
+    "build": "npx tsc -b packages/shared && npx tsc -b packages/api",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present"
