@@ -9,6 +9,10 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/api/package.json packages/api/
 
+# Eliminar web del workspace antes de npm ci (web no está en el build context)
+# y Railway/Nixpacks escanea workspaces
+RUN node -e "const p=require('./package.json'); p.workspaces=p.workspaces.filter(w=>w!=='packages/web'); require('fs').writeFileSync('/app/package.json', JSON.stringify(p,null,2))"
+
 # Install ALL dependencies (including devDeps for build)
 RUN npm ci
 
