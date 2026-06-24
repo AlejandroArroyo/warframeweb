@@ -21,14 +21,37 @@ interface AuthContextValue {
   logout: () => void;
   isAuthenticated: boolean;
   updateUser: (updated: UserDTO) => void;
+  setUserFromToken: (token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const TOKEN_KEY = 'wf_token';
+const USER_KEY = 'wf_user';
+
+/** Decodifica el payload de un JWT sin verificar firma (solo para lectura en frontend) */
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = parts[1];
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserDTO | null>(null);
+  const [user, setUser] = useState<UserDTO | null>(() => {
+    // Intentar restaurar usuario desde localStorage
+    try {
+      const stored = localStorage.getItem(USER_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
   const [loading, setLoading] = useState(true);
 
@@ -36,6 +59,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!token) {
       console.log('[Auth] No token found in localStorage');
+      setLoading(false);
+      return;
+    }
+
+    // Si ya tenemos el usuario restaurado de localStorage y el token coincide, no hacemos fetch
+    if (user) {
+      console.log('[Auth] User restored from localStorage:', user.username);
       setLoading(false);
       return;
     }
@@ -54,19 +84,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((userData) => {
         console.log('[Auth] Login successful:', userData.username);
         setUser(userData);
+        localStorage.setItem(USER_KEY, JSON.stringify(userData));
       })
       .catch((err) => {
-        // Token expirado o inválido
         console.error('[Auth] Token validation failed:', err.message);
         if (err.message.includes('Failed to fetch')) {
           console.error('[Auth] Possible CORS or network error - check that API is reachable');
         }
-        localStorage.removeItem(TOKEN_KEY);
-        setToken(null);
+        // No borramos el token inmediatamente - puede ser error de red temporal
         setUser(null);
+        localStorage.removeItem(USER_KEY);
       })
       .finally(() => setLoading(false));
   }, [token]);
+
+  const setUserFromToken = useCallback((jwt: string) => {
+    const payload = decodeJwtPayload(jwt);
+    if (!payload || !payload.userId || !payload.username) {
+      console.error('[Auth] Invalid JWT payload:', payload);
+      return;
+    }
+    const userData: UserDTO = {
+      id: payload.userId as string,
+      username: payload.username as string,
+      isAdmin: payload.isAdmin as boolean || false,
+      discordId: payload.discordId as string | undefined,
+      platform: null,
+      masteryRank: 0,
+      reputation: 0,
+      createdAt: new Date().toISOString(),
+    };
+    localStorage.setItem(TOKEN_KEY, jwt);
+    localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    setToken(jwt);
+    setUser(userData);
+  }, []);
 
   const login = useCallback(async (username: string) => {
     const res = await fetch(`${API_BASE}/auth/dev-login`, {
@@ -82,16 +134,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const data = await res.json();
     localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     setToken(data.token);
     setUser(data.user);
   }, []);
 
   const updateUser = useCallback((updated: UserDTO) => {
     setUser(updated);
+    localStorage.setItem(USER_KEY, JSON.stringify(updated));
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
     setToken(null);
     setUser(null);
   }, []);
@@ -105,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         updateUser,
+        setUserFromToken,
         isAuthenticated: !!user && !!token,
       }}
     >

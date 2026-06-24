@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext.js';
 
 /**
  * Componente que maneja el callback de Discord OAuth.
- * Lee el token JWT de la URL y lo guarda en localStorage.
- * Renderizado en la ruta /auth/callback?token=...
+ * Lee el token JWT de la URL, lo guarda en localStorage,
+ * y actualiza el usuario en AuthContext sin necesidad de fetch.
  */
 export default function AuthCallback() {
   const { t } = useTranslation();
+  const { setUserFromToken } = useAuth();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -27,20 +29,17 @@ export default function AuthCallback() {
     }
 
     if (token) {
-      try {
-        localStorage.setItem('wf_token', token);
-        setStatus('success');
-        setTimeout(() => { window.location.href = '/'; }, 1500);
-        return;
-      } catch {
-        setStatus('error');
-        setErrorMsg('Failed to store authentication token');
-        return;
-      }
+      // Decodificar JWT y setear usuario directamente sin fetch
+      setUserFromToken(token);
+      setStatus('success');
+      setTimeout(() => { window.location.href = '/'; }, 1500);
+      return;
     }
 
-    // No hay token en la URL. Si ya está en localStorage, redirigimos igual.
+    // No hay token en la URL. Si ya está en localStorage, usar setUserFromToken
+    // para restaurar el usuario desde el JWT sin fetch.
     if (existingToken) {
+      setUserFromToken(existingToken);
       window.location.href = '/';
       return;
     }
