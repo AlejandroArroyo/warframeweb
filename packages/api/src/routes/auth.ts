@@ -193,7 +193,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         discordId: discordUser.id,
       });
 
-      return reply.redirect(`${config.FRONTEND_URL}/auth/callback?token=${token}`);
+      const redirectUrl = `${config.FRONTEND_URL}/auth/callback?token=${token}`;
+      console.log('[Discord OAuth] Redirecting to', redirectUrl.replace(/token=.*/, 'token=***'));
+      return reply.redirect(redirectUrl);
     } catch (err) {
       const msg = (err as Error).message;
       console.error('[Discord OAuth] Internal error:', err);

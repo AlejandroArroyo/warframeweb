@@ -13,6 +13,17 @@ const __dirname = path.dirname(__filename);
 const SCHEMA_PATH = path.resolve(__dirname, '../prisma/schema.prisma');
 
 async function main() {
+  // Log config on startup (sin secretos)
+  console.log('🔧 Config:', {
+    NODE_ENV: config.NODE_ENV,
+    PORT: config.PORT,
+    FRONTEND_URL: config.FRONTEND_URL,
+    DISCORD_CLIENT_ID: config.DISCORD_CLIENT_ID ? '✅ set' : '❌ not set',
+    DISCORD_CLIENT_SECRET: config.DISCORD_CLIENT_SECRET ? '✅ set' : '❌ not set',
+    DISCORD_REDIRECT_URI: config.DISCORD_REDIRECT_URI,
+    DATABASE_URL: config.DATABASE_URL ? '✅ set' : '❌ not set',
+  });
+
   // Run database migrations in production
   if (config.NODE_ENV === 'production') {
     try {
