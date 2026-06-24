@@ -9,9 +9,9 @@
     "packages/web"
   ],
   "scripts": {
-    "dev": "npx tsc -b packages/shared && npm run dev -w packages/shared -w packages/api",
+    "dev": "tsc -b packages/shared && npm run dev -w packages/shared -w packages/api",
     "dev:web": "cd packages/web && npx vite",
-    "build": "npx tsc -b packages/shared && npx tsc -b packages/api",
+    "build": "tsc -b packages/shared && tsc -b packages/api",
     "start": "node packages/api/dist/index.js",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",

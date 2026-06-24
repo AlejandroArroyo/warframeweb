@@ -10,11 +10,14 @@ const DISCORD_API = 'https://discord.com/api/v10';
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   // ------------------------------------------------------------------
-  // DEV MODE: Login sin Discord (para desarrollo)
+  // DEV MODE: Login sin Discord (solo en desarrollo)
   // POST /api/auth/dev-login { username }
   // Busca o crea el usuario y devuelve un JWT.
   // ------------------------------------------------------------------
   app.post('/api/auth/dev-login', async (request, reply) => {
+    if (process.env.NODE_ENV === 'production') {
+      return reply.status(404).send({ error: 'Not available in production' });
+    }
     const { username } = request.body as { username?: string };
 
     if (!username || typeof username !== 'string' || username.trim().length === 0) {

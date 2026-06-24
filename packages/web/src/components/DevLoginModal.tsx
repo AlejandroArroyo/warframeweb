@@ -14,6 +14,8 @@ export default function DevLoginModal({ onClose }: DevLoginModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const isDev = import.meta.env.DEV;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) return;
@@ -60,45 +62,49 @@ export default function DevLoginModal({ onClose }: DevLoginModalProps) {
           {t('auth.discordLogin')}
         </button>
 
-        <div className="relative mb-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-700" />
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="bg-gray-900 px-2 text-gray-500">{t('auth.or')}</span>
-          </div>
-        </div>
-
-        {/* Dev login form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              {t('auth.devUsername')}
-            </label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="TestPlayer"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 text-sm"
-              autoFocus
-            />
-          </div>
-
-          {error && (
-            <div className="p-2 bg-red-900/50 border border-red-700 rounded text-red-200 text-xs">
-              {error}
+        {isDev && (
+          <>
+            <div className="relative mb-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-700" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-gray-900 px-2 text-gray-500">{t('auth.or')}</span>
+              </div>
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading || !username.trim()}
-            className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-black font-medium rounded-lg transition-colors text-sm"
-          >
-            {loading ? t('auth.loggingIn') : t('auth.loginDev')}
-          </button>
-        </form>
+            {/* Dev login form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  {t('auth.devUsername')}
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="TestPlayer"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 text-sm"
+                  autoFocus
+                />
+              </div>
+
+              {error && (
+                <div className="p-2 bg-red-900/50 border border-red-700 rounded text-red-200 text-xs">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || !username.trim()}
+                className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-black font-medium rounded-lg transition-colors text-sm"
+              >
+                {loading ? t('auth.loggingIn') : t('auth.loginDev')}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );
