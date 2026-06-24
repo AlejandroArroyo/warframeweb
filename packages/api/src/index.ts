@@ -18,6 +18,7 @@ async function main() {
     NODE_ENV: config.NODE_ENV,
     PORT: config.PORT,
     FRONTEND_URL: config.FRONTEND_URL,
+    CORS_ORIGIN: config.CORS_ORIGIN,
     DISCORD_CLIENT_ID: config.DISCORD_CLIENT_ID ? '✅ set' : '❌ not set',
     DISCORD_CLIENT_SECRET: config.DISCORD_CLIENT_SECRET ? '✅ set' : '❌ not set',
     DISCORD_REDIRECT_URI: config.DISCORD_REDIRECT_URI,
