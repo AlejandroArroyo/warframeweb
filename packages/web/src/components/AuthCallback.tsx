@@ -12,6 +12,10 @@ export default function AuthCallback() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    // Si main.tsx ya guardó el token en localStorage y limpió la URL,
+    // redirigimos al home directamente sin mostrar error.
+    const existingToken = localStorage.getItem('wf_token');
+
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const errorParam = params.get('error');
@@ -22,24 +26,27 @@ export default function AuthCallback() {
       return;
     }
 
-    if (!token) {
-      setStatus('error');
-      setErrorMsg('No token received from Discord authentication');
+    if (token) {
+      try {
+        localStorage.setItem('wf_token', token);
+        setStatus('success');
+        setTimeout(() => { window.location.href = '/'; }, 1500);
+        return;
+      } catch {
+        setStatus('error');
+        setErrorMsg('Failed to store authentication token');
+        return;
+      }
+    }
+
+    // No hay token en la URL. Si ya está en localStorage, redirigimos igual.
+    if (existingToken) {
+      window.location.href = '/';
       return;
     }
 
-    try {
-      localStorage.setItem('wf_token', token);
-      setStatus('success');
-
-      // Redirigir al home después de 1.5s
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1500);
-    } catch {
-      setStatus('error');
-      setErrorMsg('Failed to store authentication token');
-    }
+    setStatus('error');
+    setErrorMsg('No token received from Discord authentication');
   }, []);
 
   return (
