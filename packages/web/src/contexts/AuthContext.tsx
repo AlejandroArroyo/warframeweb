@@ -35,25 +35,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Al iniciar, si hay token guardado, verificar que siga válido
   useEffect(() => {
     if (!token) {
+      console.log('[Auth] No token found in localStorage');
       setLoading(false);
       return;
     }
 
+    console.log('[Auth] Token found, validating with', `${API_BASE}/auth/me`);
     fetch(`${API_BASE}/auth/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     })
       .then((res) => {
-        if (!res.ok) throw new Error('Token invalid');
+        console.log('[Auth] Response status:', res.status);
+        if (!res.ok) throw new Error(`Token invalid (${res.status})`);
         return res.json();
       })
       .then((userData) => {
+        console.log('[Auth] Login successful:', userData.username);
         setUser(userData);
       })
       .catch((err) => {
         // Token expirado o inválido
-        console.error('[Auth] Token validation failed:', err);
+        console.error('[Auth] Token validation failed:', err.message);
+        if (err.message.includes('Failed to fetch')) {
+          console.error('[Auth] Possible CORS or network error - check that API is reachable');
+        }
         localStorage.removeItem(TOKEN_KEY);
         setToken(null);
         setUser(null);
