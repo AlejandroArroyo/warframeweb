@@ -1,11 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { signToken } from '../lib/jwt.js';
 import { prisma } from '../lib/prisma.js';
+import { config } from '../config.js';
 
-// Discord OAuth constants
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || '';
-const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || '';
-const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'http://localhost:3001/api/auth/discord/callback';
 const DISCORD_API = 'https://discord.com/api/v10';
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
@@ -15,7 +12,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   // Busca o crea el usuario y devuelve un JWT.
   // ------------------------------------------------------------------
   app.post('/api/auth/dev-login', async (request, reply) => {
-    if (process.env.NODE_ENV === 'production') {
+    if (config.NODE_ENV === 'production') {
       return reply.status(404).send({ error: 'Not available in production' });
     }
     const { username } = request.body as { username?: string };
@@ -67,7 +64,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   // Redirige al usuario a Discord OAuth consent screen.
   // ------------------------------------------------------------------
   app.get('/api/auth/discord', async (_request, reply) => {
-    if (!DISCORD_CLIENT_ID) {
+    if (!config.DISCORD_CLIENT_ID) {
       return reply.status(501).send({
         error: 'Discord OAuth not configured',
         message: 'Set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET environment variables',
@@ -75,8 +72,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const params = new URLSearchParams({
-      client_id: DISCORD_CLIENT_ID,
-      redirect_uri: DISCORD_REDIRECT_URI,
+      client_id: config.DISCORD_CLIENT_ID,
+      redirect_uri: config.DISCORD_REDIRECT_URI,
       response_type: 'code',
       scope: 'identify',
     });
@@ -101,7 +98,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(400).send({ error: 'Missing authorization code' });
     }
 
-    if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
+    if (!config.DISCORD_CLIENT_ID || !config.DISCORD_CLIENT_SECRET) {
       return reply.status(501).send({ error: 'Discord OAuth not configured' });
     }
 
@@ -113,11 +110,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          client_id: DISCORD_CLIENT_ID,
-          client_secret: DISCORD_CLIENT_SECRET,
+          client_id: config.DISCORD_CLIENT_ID,
+          client_secret: config.DISCORD_CLIENT_SECRET,
           grant_type: 'authorization_code',
           code,
-          redirect_uri: DISCORD_REDIRECT_URI,
+          redirect_uri: config.DISCORD_REDIRECT_URI,
         }),
       });
 
@@ -191,8 +188,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         discordId: discordUser.id,
       });
 
-      const frontendUrl = (process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:5173').split(',')[0].trim();
-      return reply.redirect(`${frontendUrl}/auth/callback?token=${token}`);
+      return reply.redirect(`${config.FRONTEND_URL}/auth/callback?token=${token}`);
     } catch (err) {
       return reply.status(500).send({
         error: 'Internal error during Discord authentication',

@@ -16,7 +16,10 @@ const envSchema = z.object({
   // Discord OAuth (opcional para dev)
   DISCORD_CLIENT_ID: z.string().optional(),
   DISCORD_CLIENT_SECRET: z.string().optional(),
-  DISCORD_REDIRECT_URI: z.string().optional(),
+  DISCORD_REDIRECT_URI: z.string().default('http://localhost:3001/api/auth/discord/callback'),
+
+  // URL del frontend para redirects OAuth
+  FRONTEND_URL: z.string().default('http://localhost:5173'),
 });
 
 const parsed = envSchema.safeParse(process.env);
