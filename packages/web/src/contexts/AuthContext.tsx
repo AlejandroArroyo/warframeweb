@@ -1,7 +1,17 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { UserDTO } from '@warframe/shared';
 
-const API_BASE = '/api';
+// Misma lógica que en client.ts — runtime detection
+function resolveBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return '/api';
+    }
+  }
+  return 'https://warframeweb-production.up.railway.app/api';
+}
+const API_BASE = resolveBaseUrl();
 
 interface AuthContextValue {
   user: UserDTO | null;
