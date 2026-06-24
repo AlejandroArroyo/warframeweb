@@ -8,10 +8,10 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   // Comma-separated. Soporta wildcard * para subdominios (ej: https://*.warframeweb.pages.dev)
-  CORS_ORIGIN: z.string().default('http://localhost:5173,https://*.warframeweb.pages.dev'),
+  CORS_ORIGIN: z.string().default('http://localhost:5173,https://warframeweb.pages.dev,https://*.warframeweb.pages.dev'),
 
   // JWT
-  JWT_SECRET: z.string().optional(),
+  JWT_SECRET: z.string().default('dev-secret-change-in-production'),
 
   // Discord OAuth (opcional para dev)
   DISCORD_CLIENT_ID: z.string().optional(),

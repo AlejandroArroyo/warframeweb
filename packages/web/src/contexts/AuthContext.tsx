@@ -51,8 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((userData) => {
         setUser(userData);
       })
-      .catch(() => {
+      .catch((err) => {
         // Token expirado o inválido
+        console.error('[Auth] Token validation failed:', err);
         localStorage.removeItem(TOKEN_KEY);
         setToken(null);
         setUser(null);
