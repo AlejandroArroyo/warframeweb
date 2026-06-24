@@ -343,8 +343,32 @@ model BanAppeal {
 ---
 
 ## Estado Actual
-**Fase**: 7 - Production & Discord OAuth (COMPLETADA ✅)
-**Última acción**: Deploy a producción con Discord OAuth funcionando:
+**Fase**: 8 - User Management System (COMPLETADA ✅)
+**Última actualización**: 2026-06-24 — Sistema de gestión de usuarios con roles y permisos.
+
+### User Management (Sprint 16)
+- **Prisma schema**: Agregado `UserRole` enum (`USER`, `MODERATOR`, `ADMIN`), campos `role` (default `USER`) y `warns` (default `0`) en modelo `User`.
+- **Migración manual**: SQL `20260624120000_add_user_role_and_warns` creada manualmente (sin DB local). Railway la ejecuta via `prisma migrate deploy`.
+- **Shared package**: `ReputationTier` (Novato/Veterano/Maestro/Leyenda), `REPUTATION_TIERS`, `getReputationTier()`, y permission helpers:
+  - `canKick()` — ADMIN/MODERATOR + Veterano+
+  - `canModerate()` — ADMIN/MODERATOR + Maestro+
+  - `canManageUsers()` — ADMIN/MODERATOR + Leyenda+
+  - `canChangeRole()` — solo ADMIN
+- **Admin endpoints** (`/api/admin/users`):
+  - `GET /users` — listado con search, role filter, pagination
+  - `GET /users/:id` — detalle con stats (runs, reports, bans, warns)
+  - `PATCH /users/:id/role` — cambiar rol (solo ADMIN)
+  - `POST /users/:id/warn` — añadir warning (ADMIN/MODERATOR/Leyenda+)
+- **Frontend**: `UserManagement.tsx` — tabla con search, filtro por rol, paginación, badges de reputación (🌱 Novato, ⚔️ Veterano, ⭐ Maestro, 🏆 Leyenda), colores por rol, modal de detalle con stats, modal de warn, modal de cambio de rol.
+- **Admin button**: visible para ADMIN, MODERATOR, o Leyenda+ (no solo `isAdmin`).
+- **Traducciones**: ES/EN completas para todo el user management (`common.*` + `userManagement.*`).
+
+### Notas sobre acceso con Discord
+- **Cualquier persona con cuenta de Discord** puede loguearse en `https://warframeweb.pages.dev` mediante Discord OAuth.
+- Al registrarse, su usuario se crea con `role: USER`, `warns: 0`, `reputation: 0`.
+- Solo pueden ver el botón ⚙ Admin y el tab 👥 Usuarios quienes tengan `ADMIN`, `MODERATOR`, o reputación Leyenda+ (según `canManageUsers()`).
+- Para setear un usuario como ADMIN: `UPDATE "User" SET role = 'ADMIN', "isAdmin" = true WHERE ...` en Neon.
+- La app de Discord está configurada como pública (no restringida a team members).
 
 ### Deploy & Discord OAuth (Sprint 14-15)
 - **Deploy Railway**: Dockerfile con filtro de workspace `web`. Build: `tsc -b packages/shared && tsc -b packages/api`.
@@ -373,19 +397,19 @@ model BanAppeal {
 | `FRONTEND_URL` | `https://warframeweb.pages.dev` |
 | `DISCORD_CLIENT_ID` | ID de la app Discord |
 | `DISCORD_CLIENT_SECRET` | Secret de la app Discord |
-| `DISCORD_REDIRECT_URI` | `https://warframeb-production.up.railway.app/api/auth/discord/callback` |
+| `DISCORD_REDIRECT_URI` | `https://warframeweb-production.up.railway.app/api/auth/discord/callback` |
 | `NODE_ENV` | `production` |
 | `CORS_ORIGIN` | `http://localhost:5173,https://warframeweb.pages.dev,https://*.warframeweb.pages.dev` |
 
 **Historial de Sprints previos:**
+- **Sprint 15 (Fixes prod)**: CORS manual, login sin fetch, runtime URL detection, production guard.
+- **Sprint 14 (Discord OAuth)**: Discord OAuth login, JWT, callback, redirect, dev-login protection.
 - **Sprint 13 (User Settings)**: `PATCH /api/users/settings` con platform + masteryRank + language.
 - **Sprint 12 (Admin Panel)**: `isAdmin` field en User, `requireAdmin` decorator, rutas `/api/admin/*`, AdminPanel frontend con 3 tabs.
 - **Sprint 11 (Notificaciones)**: NotificationContext, NotificationBell, auto-toast.
 - **Sprint 10 (Perfil)**: `GET /api/users/:username/profile` con stats agregadas, PlayerProfile.
 - **Sprint 9 (Rotaciones)**: RotationGroup model, start-rotation, auto-advance.
 - **Fixes**: Ready check timeout server-side (30s), notificaciones globales via io.emit.
-
-**Siguiente paso**: Sistema de gestión de usuarios con roles/permisos basados en reputación (rango de honor).
 
 ---
 
@@ -451,8 +475,6 @@ model BanAppeal {
 - **Login sin fetch**: El JWT se decodifica en frontend (base64), el usuario se setea inmediatamente sin llamar a `/api/auth/me`.
 - **Persistencia**: `wf_token` + `wf_user` en localStorage. Al recargar, AuthProvider restaura ambos sin fetch.
 - **dev-login**: Desactivado en producción (404). Solo visible en desarrollo local.
-
-## Errores comunes y soluciones
 
 ## Errores comunes y soluciones
 | Error | Causa | Solución |
