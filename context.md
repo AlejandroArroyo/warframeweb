@@ -379,25 +379,47 @@ model BanAppeal {
 - User Settings: `PATCH /api/users/settings` protegido con `authenticate`. Valida Platform enum y masteryRank 0-30. Retorna `{ user }` actualizado.
 - Language preference: manejado 100% en frontend via i18next + localStorage. No se persiste en DB.
 - PLATFORMS importado desde `@warframe/shared` tanto en backend como frontend para consistencia.
-- Build monorepo: `npm run build` (shared→api→web). Frontend bundle ~364KB con Tailwind + Socket.io-client + i18next.
+- Build monorepo: `npm run build` (shared→api). Web build separado con `cd packages/web && npm run build`.
+- Login sin contraseña (dev-login): Endpoint `POST /api/auth/dev-login` que busca o crea usuario por username. Solo para desarrollo. En producción se usa Discord OAuth.
 
-## Despliegue (free tier)
+## Deployments & URLs
+- **Backend (Railway)**: `https://warframeweb-production.up.railway.app`
+- **Frontend (Cloudflare Pages)**: `https://warframeweb.pages.dev`
+- **API Base**: Se resuelve en RUNTIME (no build-time) via `window.location.hostname`:
+  - `localhost` o `127.0.0.1` → `/api` (proxy Vite)
+  - Cualquier otro dominio → `https://warframeweb-production.up.railway.app/api`
+- **WebSocket**: Misma lógica, apunta a Railway en producción
+
+## Despliegue (producción)
 ### Backend - Railway
-- **Estrategia**: Dockerfile en `packages/api/` que expone puerto 3001. Railway detecta Dockerfile automáticamente.
-- **Env vars**: `DATABASE_URL` (Neon), `JWT_SECRET`, `CORS_ORIGIN`, `PORT=3001`.
-- **Comando start**: `npx tsx src/index.ts` (o build + `node dist/index.js`).
-- **Neon**: PostgreSQL serverless. Crear proyecto, copiar connection string con `?sslmode=require`.
-- **Upstash**: Redis REST API. Opcional en desarrollo, fallback silencioso si no está configurado.
+- **Estrategia**: Dockerfile en raíz del repo. Railway forzado a usar Docker via `railway.json`:
+  ```json
+  { "build": { "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile" } }
+  ```
+- **Dockerfile**: Build de `shared` + `api` con `npx tsc -b`. Antes de `npm ci`, filtra `web` del workspace list para evitar errores de workspace faltante.
+- **Puerto**: Railway asigna `PORT` automáticamente (usar el que asigna, no hardcodear).
+- **Env vars requeridas**:
+  - `DATABASE_URL` — PostgreSQL (Neon)
+  - `JWT_SECRET` — para firmar tokens
+  - `CORS_ORIGIN` — `http://localhost:5173,https://*.warframeweb.pages.dev`
+  - `FRONTEND_URL` — para redirect de Discord OAuth
+- **CORS**: Implementado con wildcard via regex. Permite cualquier subdominio `*.warframeweb.pages.dev`.
 
 ### Frontend - Cloudflare Pages
-- **Estrategia**: Build desde `packages/web/`. Output en `dist/`.
-- **Build command**: `npm run build` desde raíz (requiere shared build primero).
+- **Build**: Cloudflare Pages corre `npm run build` desde la raíz (build shared + api). Luego Vite build del web por separado.
 - **Build output**: `packages/web/dist/`.
-- **Env vars**: `VITE_API_URL` apuntando a Railway backend.
-- **Proxy dev**: Vite proxy `/api` y `/socket.io` a `localhost:3001`. En prod, Cloudflare Pages proxy inverso o CORS directo a Railway.
-- **Nota**: Si se usa Vite proxy en prod, no funciona. Mejor CORS directo o Cloudflare Function como proxy.
+- **NO necesita env vars**: La URL del backend se resuelve en runtime. No más `VITE_API_URL`.
+- **Proxy dev**: Vite proxy `/api` y `/socket.io` a `localhost:3001`.
 
 ### Discord OAuth
 - **Producción**: Registrar app en https://discord.com/developers/applications
 - **Redirect URI**: `https://midominio.railway.app/api/auth/discord/callback`
-- **Env vars**: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`
+- **Env vars**: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `FRONTEND_URL`
+
+## Errores comunes y soluciones
+| Error | Causa | Solución |
+|-------|-------|----------|
+| `405 Method Not Allowed` al hacer login | Frontend apunta a Cloudflare Pages en vez de Railway | Verificar `resolveBaseUrl()` en `client.ts`, `AuthContext.tsx`, `useSocket.ts` |
+| `No workspaces found: --workspace=@warframe/web` | Railway/Nixpacks escanea workspaces y no encuentra web | Usar Dockerfile + filtrar web del workspace antes de `npm ci` |
+| `ERR_MODULE_NOT_FOUND: @warframe/shared/src/index.ts` | `shared/package.json` exporta `.ts` en vez de `.js` | Usar conditional exports: `module` → `.ts` (Vite), `import` → `.js` (Node.js) |
+| `Could not load --schema from provided path` | Ruta relativa a `cwd`, y Railway corre desde `packages/api/` | Usar `import.meta.url` para resolver ruta absoluta al schema |

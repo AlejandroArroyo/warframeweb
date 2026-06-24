@@ -137,20 +137,31 @@ function AppContent() {
 
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Usuario autenticado - visible en mobile como avatar solo */}
-            {isAuthenticated && user ? (
-              <button
-                onClick={() => {
-                  setProfileUsername(user.username);
-                  setView('profile');
-                }}
-                className="text-sm text-gray-400 hover:text-gray-200 transition-colors flex items-center gap-1.5"
-                title={user.username}
-              >
-                <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-medium">
-                  {user.username.charAt(0)}
-                </div>
-                <span className="hidden sm:inline">{user.username} · MR{user.masteryRank}</span>
-              </button>
+              {isAuthenticated && user ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setProfileUsername(user.username);
+                    setView('profile');
+                  }}
+                  className="text-sm text-gray-400 hover:text-gray-200 transition-colors flex items-center gap-1.5"
+                  title={user.username}
+                >
+                  <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-medium">
+                    {user.username.charAt(0)}
+                  </div>
+                  <span className="hidden sm:inline">{user.username} · MR{user.masteryRank}</span>
+                </button>
+                <button
+                  onClick={logout}
+                  className="text-xs text-gray-500 hover:text-red-400 transition-colors p-1"
+                  title={t('auth.logout')}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => setShowLoginModal(true)}

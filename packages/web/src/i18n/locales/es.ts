@@ -137,11 +137,12 @@ export default {
   },
   auth: {
     login: 'Iniciar sesión',
+    logout: 'Cerrar sesión',
     discordLogin: 'Iniciar sesión con Discord',
     or: 'o',
-    devUsername: 'Nombre de usuario (dev)',
-    loginDev: 'Entrar en modo desarrollo',
-    loggingIn: 'Entrando...',
+    devUsername: 'Usuario (modo dev)',
+    loginDev: 'Entrar en modo dev',
+    loggingIn: 'Iniciando sesión...',
   },
   settings: {
     title: 'Ajustes',

@@ -137,6 +137,7 @@ export default {
   },
   auth: {
     login: 'Sign in',
+    logout: 'Sign out',
     discordLogin: 'Sign in with Discord',
     or: 'or',
     devUsername: 'Username (dev mode)',
