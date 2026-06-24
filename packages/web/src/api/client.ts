@@ -1,11 +1,14 @@
 import type { LobbyDTO, CreateLobbyRequest, UserDTO } from '@warframe/shared';
 
 // En desarrollo: Vite proxy sirve /api -> localhost:3001
-// En producción: VITE_API_URL apunta al backend (ej: https://warframeweb-api.onrender.com) SIN /api al final
+// En producción: usa VITE_API_URL si está seteada, sino usa Render directo
+const _RENDER_URL = 'https://warframeweb-api.onrender.com';
 const _VITE_API_URL = import.meta.env.VITE_API_URL;
 const API_BASE = _VITE_API_URL
   ? `${_VITE_API_URL.replace(/\/+$/, '')}/api`
-  : '/api';
+  : import.meta.env.PROD
+    ? `${_RENDER_URL}/api`
+    : '/api';
 
 function getToken(): string | null {
   try {
