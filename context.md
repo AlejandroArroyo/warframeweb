@@ -343,22 +343,49 @@ model BanAppeal {
 ---
 
 ## Estado Actual
-**Fase**: 6 - Sprint 13 - User Settings (COMPLETADA ✅)
-**Última acción**: Sprint 13 completado:
-- **PATCH /api/users/settings**: endpoint protegido que acepta `platform` y `masteryRank` con validación. Devuelve 401 sin auth, 400 si datos inválidos.
-- **UserSettings.tsx**: modal con selector de plataforma (PC/PS4/PS5/XB1/XSX/SWITCH), input de Maestría (0-30), language switcher ES/EN, info de cuenta. Botón Guardar actualiza vía API + AuthContext.updateUser.
-- **Navegación**: gear icon en header visible siempre que hay sesión. gear icon en perfil solo cuando es el propio perfil.
-- **Language Switcher**: toggle ES/EN dentro de settings, cambia i18n al instante y persiste en localStorage.
-- **Traducciones**: claves `settings.*` agregadas en ES y EN.
+**Fase**: 7 - Production & Discord OAuth (COMPLETADA ✅)
+**Última acción**: Deploy a producción con Discord OAuth funcionando:
+
+### Deploy & Discord OAuth (Sprint 14-15)
+- **Deploy Railway**: Dockerfile con filtro de workspace `web`. Build: `tsc -b packages/shared && tsc -b packages/api`.
+- **Deploy Cloudflare Pages**: Build output `packages/web/dist/`. Sin env vars (URLs resueltas en runtime).
+- **Discord OAuth**: Flujo completo funcionando en producción.
+- **Bug fixes críticos**:
+  - `AuthContext.tsx` tenía `const API_BASE = '/api'` hardcodeado → login fallaba con 405 en producción. Solución: runtime `resolveBaseUrl()`.
+  - `useSocket.ts` usaba `VITE_WS_URL` → no conectaba en producción. Solución: runtime `resolveWsUrl()`.
+  - `process.env.FRONTEND_URL` vs `config.FRONTEND_URL` → redirect post-login iba a localhost. Solución: usar objeto `config` ya parseado.
+  - `main.tsx` limpiaba la URL con `replaceState` antes de que AuthCallback lea el token → "No token received". Solución: AuthCallback checkea localStorage primero.
+  - `@fastify/cors` no funcionaba en Railway (OPTIONS no pasaba el plugin). Solución: CORS manual con `addHook('onRequest')` + `Access-Control-Allow-Origin: *`.
+  - `jwt.ts` usaba `process.env.JWT_SECRET` → inconsistente con el schema de Zod. Solución: importar `config.JWT_SECRET`.
+- **Login sin fetch**: AuthCallback decodifica el JWT directamente en frontend (base64) y setea el usuario sin depender de fetch a `/api/auth/me`. User data persistida en `localStorage` (`wf_user`).
+- **Production guard**: dev-login devuelve 404 en producción. DevLoginModal oculta el form de dev-login cuando `import.meta.env.DEV = false`.
+- **CORS**: Manual `onRequest` hook con `Access-Control-Allow-Origin: *`. OPTIONS preflight respondido con 204.
+- **Config logging**: Startup log de Railway muestra valores de `FRONTEND_URL`, `CORS_ORIGIN`, `DISCORD_CLIENT_ID`, etc.
+
+### Enlaces
+- **Frontend**: https://warframeweb.pages.dev
+- **Backend**: https://warframeweb-production.up.railway.app
+- **Discord App**: https://discord.com/developers/applications
+
+### Variables de entorno requeridas en Railway
+| Variable | Valor |
+|----------|-------|
+| `FRONTEND_URL` | `https://warframeweb.pages.dev` |
+| `DISCORD_CLIENT_ID` | ID de la app Discord |
+| `DISCORD_CLIENT_SECRET` | Secret de la app Discord |
+| `DISCORD_REDIRECT_URI` | `https://warframeb-production.up.railway.app/api/auth/discord/callback` |
+| `NODE_ENV` | `production` |
+| `CORS_ORIGIN` | `http://localhost:5173,https://warframeweb.pages.dev,https://*.warframeweb.pages.dev` |
 
 **Historial de Sprints previos:**
-- **Sprint 12 (Admin Panel)**: `isAdmin` field en User, `requireAdmin` decorator, rutas `/api/admin/*`, AdminPanel frontend con 3 tabs (reports/bans/appeals), botón Admin en header condicional a `user.isAdmin`.
-- **Sprint 11 (Notificaciones)**: NotificationContext, NotificationBell, auto-toast, socket como state para provider.
-- **Sprint 10 (Perfil)**: `GET /api/users/:username/profile` con stats agregadas, streaks, runs paginados. PlayerProfile con charts CSS.
-- **Sprint 9 (Rotaciones)**: RotationGroup model, start-rotation, auto-advance en CLOSED con host rotativo.
+- **Sprint 13 (User Settings)**: `PATCH /api/users/settings` con platform + masteryRank + language.
+- **Sprint 12 (Admin Panel)**: `isAdmin` field en User, `requireAdmin` decorator, rutas `/api/admin/*`, AdminPanel frontend con 3 tabs.
+- **Sprint 11 (Notificaciones)**: NotificationContext, NotificationBell, auto-toast.
+- **Sprint 10 (Perfil)**: `GET /api/users/:username/profile` con stats agregadas, PlayerProfile.
+- **Sprint 9 (Rotaciones)**: RotationGroup model, start-rotation, auto-advance.
 - **Fixes**: Ready check timeout server-side (30s), notificaciones globales via io.emit.
 
-**Siguiente paso**: Deploy a producción (Railway + Cloudflare Pages).
+**Siguiente paso**: Sistema de gestión de usuarios con roles/permisos basados en reputación (rango de honor).
 
 ---
 
@@ -396,14 +423,19 @@ model BanAppeal {
   ```json
   { "build": { "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile" } }
   ```
-- **Dockerfile**: Build de `shared` + `api` con `npx tsc -b`. Antes de `npm ci`, filtra `web` del workspace list para evitar errores de workspace faltante.
-- **Puerto**: Railway asigna `PORT` automáticamente (usar el que asigna, no hardcodear).
+- **Dockerfile**: Build de `shared` + `api` con `tsc -b`. Antes de `npm ci`, filtra `web` del workspace list para evitar errores de workspace faltante.
+- **Puerto**: Railway asigna `PORT` automáticamente. Usar el que asigna.
 - **Env vars requeridas**:
   - `DATABASE_URL` — PostgreSQL (Neon)
-  - `JWT_SECRET` — para firmar tokens
-  - `CORS_ORIGIN` — `http://localhost:5173,https://*.warframeweb.pages.dev`
+  - `JWT_SECRET` — para firmar tokens (default en schema de Zod)
+  - `CORS_ORIGIN` — `http://localhost:5173,https://warframeweb.pages.dev,https://*.warframeweb.pages.dev`
   - `FRONTEND_URL` — para redirect de Discord OAuth
-- **CORS**: Implementado con wildcard via regex. Permite cualquier subdominio `*.warframeweb.pages.dev`.
+  - `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` — Discord OAuth
+  - `DISCORD_REDIRECT_URI` — debe coincidir con Discord App
+- **CORS**: Manual via `addHook('onRequest')`. `Access-Control-Allow-Origin: *`. OPTIONS respondido con 204.
+  - No usa `@fastify/cors` (no funcionaba en Railway).
+  - **Importante**: si Railway cambia el dominio, no hay que actualizar nada porque permite todos los orígenes.
+- **Build script**: `tsc -b packages/shared && tsc -b packages/api`. No usar `npx tsc` (instala paquete deprecado).
 
 ### Frontend - Cloudflare Pages
 - **Build**: Cloudflare Pages corre `npm run build` desde la raíz (build shared + api). Luego Vite build del web por separado.
@@ -412,9 +444,15 @@ model BanAppeal {
 - **Proxy dev**: Vite proxy `/api` y `/socket.io` a `localhost:3001`.
 
 ### Discord OAuth
-- **Producción**: Registrar app en https://discord.com/developers/applications
-- **Redirect URI**: `https://midominio.railway.app/api/auth/discord/callback`
-- **Env vars**: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `FRONTEND_URL`
+- **Producción**: App registrada en https://discord.com/developers/applications
+- **Redirect URI (Discord App)**: `https://warframeweb-production.up.railway.app/api/auth/discord/callback`
+- **Env vars**: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `FRONTEND_URL`
+- **Flujo**: Botón "Sign in with Discord" → OAuth authorize → Railway callback → JWT → redirect a frontend con `?token=JWT`
+- **Login sin fetch**: El JWT se decodifica en frontend (base64), el usuario se setea inmediatamente sin llamar a `/api/auth/me`.
+- **Persistencia**: `wf_token` + `wf_user` en localStorage. Al recargar, AuthProvider restaura ambos sin fetch.
+- **dev-login**: Desactivado en producción (404). Solo visible en desarrollo local.
+
+## Errores comunes y soluciones
 
 ## Errores comunes y soluciones
 | Error | Causa | Solución |
@@ -423,3 +461,8 @@ model BanAppeal {
 | `No workspaces found: --workspace=@warframe/web` | Railway/Nixpacks escanea workspaces y no encuentra web | Usar Dockerfile + filtrar web del workspace antes de `npm ci` |
 | `ERR_MODULE_NOT_FOUND: @warframe/shared/src/index.ts` | `shared/package.json` exporta `.ts` en vez de `.js` | Usar conditional exports: `module` → `.ts` (Vite), `import` → `.js` (Node.js) |
 | `Could not load --schema from provided path` | Ruta relativa a `cwd`, y Railway corre desde `packages/api/` | Usar `import.meta.url` para resolver ruta absoluta al schema |
+| `No token received from Discord authentication` | `main.tsx` limpia la URL con `replaceState` antes de que AuthCallback lea el token | AuthCallback verifica localStorage primero (main.tsx ya lo guardó) |
+| `CORS error` pese a `@fastify/cors` configurado | Railway no pasa OPTIONS preflight al plugin | Usar `addHook('onRequest')` manual con `Access-Control-Allow-Origin: *` |
+| `Discord OAuth not configured` | `DISCORD_CLIENT_ID` no seteado en Railway | Agregar env vars en Railway Dashboard |
+| Login redirige a `localhost:5173` en vez de Cloudflare | `auth.ts` usaba `process.env.FRONTEND_URL` sin leer objeto `config` | Usar `config.FRONTEND_URL` que tiene default del schema Zod |
+| `tsc@2.0.4` no es TypeScript compiler | `npx tsc` instala paquete deprecado global | Usar `tsc` directamente (npm resuelve `./node_modules/.bin/tsc`) |
