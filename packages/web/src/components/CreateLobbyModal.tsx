@@ -107,7 +107,11 @@ export default function CreateLobbyModal({ onSubmit, onClose }: Props) {
               type="checkbox"
               id="radshare"
               checked={isRadshare}
-              onChange={(e) => setIsRadshare(e.target.checked)}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setIsRadshare(checked);
+                if (checked) setLoadingRelics(true); // Evita flash de "no relics"
+              }}
               className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-amber-500 focus:ring-amber-500"
             />
             <label htmlFor="radshare" className="text-sm text-gray-300">
@@ -125,8 +129,16 @@ export default function CreateLobbyModal({ onSubmit, onClose }: Props) {
                 onChange={(e) => setIsRotation(e.target.checked)}
                 className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500"
               />
-              <label htmlFor="rotation" className="text-sm text-gray-300">
-                <span className="text-blue-400 font-medium">Rotación</span> — 4 rondas, 1 host cada una
+              <label htmlFor="rotation" className="text-sm text-gray-300 flex items-center gap-1.5">
+                <span className="text-blue-400 font-medium">Rotación</span>
+                <span className="text-gray-400">—</span>
+                <span>4 rondas, 1 host cada una</span>
+                <span
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-700 text-gray-400 text-[10px] cursor-help"
+                  title="Crea 4 lobbies consecutivos del mismo radshare, rotando el anfitrión en cada ronda. Ideal para grupos de 4 que quieren maximizar su tiempo juntos."
+                >
+                  ?
+                </span>
               </label>
             </div>
           )}
