@@ -5,6 +5,7 @@ import { buildApp } from './app.js';
 import { createIO } from './plugins/socket.js';
 import { getRedis } from './lib/redis.js';
 import { config } from './config.js';
+import { seedRelicsIfEmpty } from './seed-relics.js';
 
 // Ruta absoluta al schema, resuelta desde la ubicación de este archivo compilado.
 // Así funciona sin importar el working directory (Render corre desde packages/api/).
@@ -38,6 +39,13 @@ async function main() {
       console.error('❌ Migration failed:', err);
       process.exit(1);
     }
+  }
+
+  // Seed relics if table is empty (idempotent)
+  try {
+    await seedRelicsIfEmpty();
+  } catch (err) {
+    console.error('⚠️  Relic seed failed (non-fatal):', (err as Error).message);
   }
 
   const app = await buildApp();
