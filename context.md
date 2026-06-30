@@ -343,8 +343,21 @@ model BanAppeal {
 ---
 
 ## Estado Actual
-**Fase**: 8 - User Management System (COMPLETADA ✅)
-**Última actualización**: 2026-06-24 — Sistema de gestión de usuarios con roles y permisos.
+**Fase**: 9 - Dynamic Relic API (COMPLETADA ✅)
+**Última actualización**: 2026-06-29 — Reliquias obtenidas dinámicamente desde API pública de Warframe.
+
+### Dynamic Relic API (Sprint 17)
+- **Fuente de datos**: WFCD Warframe Drops API (`https://drops.warframestat.us/data/relics.json`), mantenida por la comunidad, se actualiza automáticamente con cada update de DE.
+- **`lib/relics-api.ts`**: Fetcher con cache en memoria (TTL 1 hora). Fallback hardcodeado si la API no responde. Extrae pares únicos (tier, relicName) del JSON.
+- **`seed-relics.ts`**: Ahora usa `getRelicList()` del API fetcher en vez del array hardcodeado. `seedRelifcsIfEmpty()` para primer seed, `refreshRelicsFromAPI()` para actualización incremental.
+- **`routes/relics.ts`**: Eliminado el array hardcodeado de ~300 reliquias. Endpoints `GET /api/relics` y `GET /api/relics/:era` leen de DB. Endpoint `POST /api/seed` para seed inicial. Endpoint `POST /api/admin/refresh-relics` para refrescar desde API.
+- **¿Qué pasa si DE agrega reliquias?**: Automaticamente, el próximo startup llamará a `refreshRelicsFromAPI()` y las agregará. También se puede llamar a `POST /api/admin/refresh-relics` manualmente desde cualquier cliente HTTP.
+- **Script SQL manual**: `scripts/generate-relics-sql.mjs` genera INSERTs idempotentes para seed manual desde Neon.
+
+### Bug fixes (Sprint 15-16)
+- **Radshare relic flash**: Al checkear radshare, se mostraba "No relics available" por un frame antes de cargar. Fix: setear `loadingRelics=true` sincrónicamente en el onChange.
+- **Rotation tooltip**: Agregado ícono `?` con tooltip explicativo ("4 rondas consecutivas rotando host").
+- **Railway build fix**: TypeScript se quejaba de tipo `RelicEra` en arrays hardcodeados. Fix: tipar con `type RelicSeed`.
 
 ### User Management (Sprint 16)
 - **Prisma schema**: Agregado `UserRole` enum (`USER`, `MODERATOR`, `ADMIN`), campos `role` (default `USER`) y `warns` (default `0`) en modelo `User`.
@@ -402,7 +415,9 @@ model BanAppeal {
 | `CORS_ORIGIN` | `http://localhost:5173,https://warframeweb.pages.dev,https://*.warframeweb.pages.dev` |
 
 **Historial de Sprints previos:**
-- **Sprint 15 (Fixes prod)**: CORS manual, login sin fetch, runtime URL detection, production guard.
+- **Sprint 17 (Relic API dinámica)**: Reemplazo de reliquias hardcodeadas por fetch dinámico desde WFCD Drops API (`drops.warframestat.us`). Cache en memoria con TTL 1h + fallback hardcodeado. Endpoint `POST /api/admin/refresh-relics` para actualizar desde el panel admin.
+- **Sprint 16 (User Management)**: Roles (USER/MODERATOR/ADMIN), warns, reputation tiers, permission helpers, admin endpoints para user management, frontend de gestión de usuarios.
+- **Sprint 15 (Fixes prod)**: CORS manual, login sin fetch, runtime URL detection, production guard. Fix radshare relic flash y tooltip de rotación.
 - **Sprint 14 (Discord OAuth)**: Discord OAuth login, JWT, callback, redirect, dev-login protection.
 - **Sprint 13 (User Settings)**: `PATCH /api/users/settings` con platform + masteryRank + language.
 - **Sprint 12 (Admin Panel)**: `isAdmin` field en User, `requireAdmin` decorator, rutas `/api/admin/*`, AdminPanel frontend con 3 tabs.
