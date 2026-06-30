@@ -18,8 +18,11 @@ interface RelicEntry {
   state?: string;
 }
 
+/** Valores posibles del enum RelicEra de Prisma */
+type RelicEra = 'Lith' | 'Meso' | 'Neo' | 'Axi' | 'Requiem';
+
 interface CachedRelics {
-  relics: Array<{ era: string; name: string }>;
+  relics: Array<{ era: RelicEra; name: string }>;
   fetchedAt: number;
 }
 
@@ -27,7 +30,7 @@ let cache: CachedRelics | null = null;
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
 
 // Fallback hardcodeado por si la API no responde
-const FALLBACK_RELICS: Array<{ era: string; name: string }> = [
+const FALLBACK_RELICS: Array<{ era: RelicEra; name: string }> = [
   { era: 'Lith', name: 'A1' }, { era: 'Lith', name: 'A2' },
   { era: 'Lith', name: 'B1' }, { era: 'Lith', name: 'B2' }, { era: 'Lith', name: 'B3' }, { era: 'Lith', name: 'B4' }, { era: 'Lith', name: 'B5' }, { era: 'Lith', name: 'B6' }, { era: 'Lith', name: 'B7' }, { era: 'Lith', name: 'B8' }, { era: 'Lith', name: 'B9' }, { era: 'Lith', name: 'B10' },
   { era: 'Lith', name: 'C1' }, { era: 'Lith', name: 'C2' }, { era: 'Lith', name: 'C3' }, { era: 'Lith', name: 'C4' }, { era: 'Lith', name: 'C5' }, { era: 'Lith', name: 'C6' }, { era: 'Lith', name: 'C7' }, { era: 'Lith', name: 'C8' }, { era: 'Lith', name: 'C9' },
@@ -99,7 +102,7 @@ const FALLBACK_RELICS: Array<{ era: string; name: string }> = [
  * Fetch reliquias desde la API pública de Warframe.
  * Extrae pares únicos (tier, relicName) del JSON.
  */
-async function fetchFromAPI(): Promise<Array<{ era: string; name: string }>> {
+async function fetchFromAPI(): Promise<Array<{ era: RelicEra; name: string }>> {
   const response = await fetch(RELICS_API_URL);
   if (!response.ok) {
     throw new Error(`API returned ${response.status}`);
@@ -112,18 +115,18 @@ async function fetchFromAPI(): Promise<Array<{ era: string; name: string }>> {
 
   // Extraer pares únicos (tier, relicName)
   const seen = new Set<string>();
-  const relics: Array<{ era: string; name: string }> = [];
+  const relics: Array<{ era: RelicEra; name: string }> = [];
 
   for (const entry of data) {
     if (!entry.tier || !entry.relicName) continue;
     const key = `${entry.tier}:${entry.relicName}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    relics.push({ era: entry.tier, name: entry.relicName });
+    relics.push({ era: entry.tier as RelicEra, name: entry.relicName });
   }
 
   // Ordenar por era y nombre
-  const eraOrder = ['Lith', 'Meso', 'Neo', 'Axi', 'Requiem'];
+  const eraOrder = ['Lith', 'Meso', 'Neo', 'Axi', 'Requiem'] as const;
   relics.sort((a, b) => {
     const eraDiff = eraOrder.indexOf(a.era) - eraOrder.indexOf(b.era);
     if (eraDiff !== 0) return eraDiff;
@@ -138,7 +141,7 @@ async function fetchFromAPI(): Promise<Array<{ era: string; name: string }>> {
  * 1. Intenta API pública
  * 2. Si falla, usa fallback hardcodeado
  */
-export async function getRelicList(): Promise<Array<{ era: string; name: string }>> {
+export async function getRelicList(): Promise<Array<{ era: RelicEra; name: string }>> {
   // Cache válido?
   if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) {
     return cache.relics;
@@ -159,7 +162,7 @@ export async function getRelicList(): Promise<Array<{ era: string; name: string 
 /**
  * Fuerza la recarga de reliquias desde la API (invalida cache).
  */
-export async function forceRefreshRelics(): Promise<Array<{ era: string; name: string }>> {
+export async function forceRefreshRelics(): Promise<Array<{ era: RelicEra; name: string }>> {
   cache = null;
   return getRelicList();
 }
