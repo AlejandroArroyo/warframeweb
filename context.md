@@ -343,12 +343,21 @@ model BanAppeal {
 ---
 
 ## Estado Actual
-**Fase**: 10 - Relic API Fix + Startup Refresh (COMPLETADA ✅)
-**Última actualización**: 2026-06-30 — Fix parser API WFCD, fallback completo, refresh automático en startup.
+**Fase**: 11 - Lobby Deletion + Admin (COMPLETADA ✅)
+**Última actualización**: 2026-06-30 — Botones UI para borrar lobby (host/admin), admin puede borrar cualquier lobby.
 
 ### Sprint 19 — Lobby Deletion (Host + Admin)
-- **`DELETE /api/lobbies/:id`**: El host puede borrar su propio lobby (solo en estado `OPEN` o `CONFIRMING`). Borra participantes primero (FK constraint) y emite `lobby:deleted` vía WebSocket.
-- **`POST /api/admin/clear-lobbies`**: Solo ADMIN. Borra TODOS los lobbies, participantes y runs asociados. Emite `lobby:deleted` global para que todos los clientes se actualicen en tiempo real.
+- **Backend `DELETE /api/lobbies/:id`**:
+  - El **host** puede borrar su lobby (solo `OPEN`/`CONFIRMING`)
+  - El **admin** (`role: ADMIN`) puede borrar **cualquier** lobby, en **cualquier** estado
+  - Verifica el role del usuario en DB; si no es ni host ni admin → 403
+  - Borra participantes primero (FK constraint), después el lobby
+  - Emite `lobby:deleted` por WebSocket con indicador `deletedBy: 'host' | 'admin'`
+- **Backend `POST /api/admin/clear-lobbies`**: Solo ADMIN. Borra TODOS los lobbies, participantes y runs. Emite `lobby:deleted` global.
+- **Frontend LobbyDetail.tsx**: Botón 🗑 **Borrar** visible para hosts (solo OPEN/CONFIRMING) y para admins (siempre, cualquier estado). ConfirmDialog antes de borrar. Tras borrar, vuelve al listado.
+- **Frontend AdminPanel.tsx**: Botón 🗑 **Clear all lobbies** en el header (al lado del ✕). Confirm con `window.confirm()`. Muestra resultado (cuántos lobbies/participantes/runs borrados).
+- **Frontend api/client.ts**: Nuevos métodos `deleteLobby(lobbyId, userId)` y `clearAllLobbies()`.
+- **Traducciones**: `lobby.delete` agregado en EN (`'Delete'`) y ES (`'Borrar'`).
 
 ### Sprint 18 — Relic API Fix & Startup Refresh
 #### Problema
@@ -438,7 +447,7 @@ model BanAppeal {
 | `CORS_ORIGIN` | `http://localhost:5173,https://warframeweb.pages.dev,https://*.warframeweb.pages.dev` |
 
 **Historial de Sprints previos:**
-- **Sprint 19 (Lobby Deletion)**: `DELETE /api/lobbies/:id` para que el host borre su lobby. `POST /api/admin/clear-lobbies` para que admin borre todos. Evento WebSocket `lobby:deleted` para actualización en tiempo real.
+- **Sprint 19 (Lobby Deletion + UI)**: `DELETE /api/lobbies/:id` con soporte para admin (borra cualquier lobby en cualquier estado). `POST /api/admin/clear-lobbies` para admin. Botones 🗑 en LobbyDetail (host/admin) y AdminPanel. ConfirmDialog antes de borrar. Traducciones EN/ES.
 - **Sprint 18 (Relic API fix + startup refresh)**: Fix parseo respuesta WFCD (`{relics: [...]}`). Fallback actualizado con datos completos (796 relics). `refreshRelicsFromAPI()` optimizado con `createMany` + `skipDuplicates`. Refresh automático en cada startup. Reconexión GitHub → Railway para auto-deploy.
 - **Sprint 17 (Relic API dinámica)**: Reemplazo de reliquias hardcodeadas por fetch dinámico desde WFCD Drops API (`drops.warframestat.us`). Cache en memoria con TTL 1h + fallback hardcodeado. Endpoint `POST /api/admin/refresh-relics` para actualizar desde el panel admin.
 - **Sprint 16 (User Management)**: Roles (USER/MODERATOR/ADMIN), warns, reputation tiers, permission helpers, admin endpoints para user management, frontend de gestión de usuarios.
