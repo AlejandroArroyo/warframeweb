@@ -35,11 +35,11 @@ export async function refreshRelicsFromAPI(): Promise<{ added: number; total: nu
   let added = 0;
   for (const relic of relics) {
     const exists = await prisma.relic.findFirst({
-      where: { era: relic.era as any, name: relic.name },
+      where: { era: relic.era, name: relic.name },
     });
     if (!exists) {
       await prisma.relic.create({
-        data: { era: relic.era as any, name: relic.name },
+        data: { era: relic.era, name: relic.name },
       });
       added++;
     }
