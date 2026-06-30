@@ -5,7 +5,7 @@ import { buildApp } from './app.js';
 import { createIO } from './plugins/socket.js';
 import { getRedis } from './lib/redis.js';
 import { config } from './config.js';
-import { seedRelicsIfEmpty } from './seed-relics.js';
+import { seedRelicsIfEmpty, refreshRelicsFromAPI } from './seed-relics.js';
 
 // Ruta absoluta al schema, resuelta desde la ubicación de este archivo compilado.
 // Así funciona sin importar el working directory (Render corre desde packages/api/).
@@ -46,6 +46,16 @@ async function main() {
     await seedRelicsIfEmpty();
   } catch (err) {
     console.error('⚠️  Relic seed failed (non-fatal):', (err as Error).message);
+  }
+
+  // Refresh missing relics from API (agrega las que faltan)
+  try {
+    const result = await refreshRelicsFromAPI();
+    if (result.added > 0) {
+      console.log(`🔄 Added ${result.added} missing relics (total: ${result.total})`);
+    }
+  } catch (err) {
+    console.error('⚠️  Relic refresh failed (non-fatal):', (err as Error).message);
   }
 
   const app = await buildApp();

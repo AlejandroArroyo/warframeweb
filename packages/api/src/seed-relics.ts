@@ -30,21 +30,15 @@ export async function seedRelicsIfEmpty(): Promise<void> {
  */
 export async function refreshRelicsFromAPI(): Promise<{ added: number; total: number; source: string }> {
   const relics = await getRelicList();
+  const countBefore = await prisma.relic.count();
 
-  // Insertar solo las que no existen
-  let added = 0;
-  for (const relic of relics) {
-    const exists = await prisma.relic.findFirst({
-      where: { era: relic.era, name: relic.name },
-    });
-    if (!exists) {
-      await prisma.relic.create({
-        data: { era: relic.era, name: relic.name },
-      });
-      added++;
-    }
-  }
+  // createMany con skipDuplicates aprovecha @@unique([era, name])
+  await prisma.relic.createMany({
+    data: relics,
+    skipDuplicates: true,
+  });
 
   const total = await prisma.relic.count();
+  const added = total - countBefore;
   return { added, total, source: 'WFCD Drops API (drops.warframestat.us)' };
 }
