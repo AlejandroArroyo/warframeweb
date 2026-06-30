@@ -1,6 +1,8 @@
 import { prisma } from './lib/prisma.js';
 
-const RELICS = [
+type RelicSeed = { era: 'Lith' | 'Meso' | 'Neo' | 'Axi' | 'Requiem'; name: string };
+
+const RELICS: RelicSeed[] = [
   { era: 'Lith', name: 'A1' }, { era: 'Lith', name: 'A2' },
   { era: 'Lith', name: 'B1' }, { era: 'Lith', name: 'B2' }, { era: 'Lith', name: 'B3' }, { era: 'Lith', name: 'B4' }, { era: 'Lith', name: 'B5' }, { era: 'Lith', name: 'B6' }, { era: 'Lith', name: 'B7' }, { era: 'Lith', name: 'B8' }, { era: 'Lith', name: 'B9' }, { era: 'Lith', name: 'B10' },
   { era: 'Lith', name: 'C1' }, { era: 'Lith', name: 'C2' }, { era: 'Lith', name: 'C3' }, { era: 'Lith', name: 'C4' }, { era: 'Lith', name: 'C5' }, { era: 'Lith', name: 'C6' }, { era: 'Lith', name: 'C7' }, { era: 'Lith', name: 'C8' }, { era: 'Lith', name: 'C9' },
