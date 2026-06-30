@@ -343,18 +343,41 @@ model BanAppeal {
 ---
 
 ## Estado Actual
-**Fase**: 9 - Dynamic Relic API (COMPLETADA ✅)
-**Última actualización**: 2026-06-29 — Reliquias obtenidas dinámicamente desde API pública de Warframe.
+**Fase**: 10 - Relic API Fix + Startup Refresh (COMPLETADA ✅)
+**Última actualización**: 2026-06-30 — Fix parser API WFCD, fallback completo, refresh automático en startup.
 
-### Dynamic Relic API (Sprint 17)
-- **Fuente de datos**: WFCD Warframe Drops API (`https://drops.warframestat.us/data/relics.json`), mantenida por la comunidad, se actualiza automáticamente con cada update de DE.
-- **`lib/relics-api.ts`**: Fetcher con cache en memoria (TTL 1 hora). Fallback hardcodeado si la API no responde. Extrae pares únicos (tier, relicName) del JSON.
-- **`seed-relics.ts`**: Ahora usa `getRelicList()` del API fetcher en vez del array hardcodeado. `seedRelifcsIfEmpty()` para primer seed, `refreshRelicsFromAPI()` para actualización incremental.
-- **`routes/relics.ts`**: Eliminado el array hardcodeado de ~300 reliquias. Endpoints `GET /api/relics` y `GET /api/relics/:era` leen de DB. Endpoint `POST /api/seed` para seed inicial. Endpoint `POST /api/admin/refresh-relics` para refrescar desde API.
-- **¿Qué pasa si DE agrega reliquias?**: Automaticamente, el próximo startup llamará a `refreshRelicsFromAPI()` y las agregará. También se puede llamar a `POST /api/admin/refresh-relics` manualmente desde cualquier cliente HTTP.
-- **Script SQL manual**: `scripts/generate-relics-sql.mjs` genera INSERTs idempotentes para seed manual desde Neon.
+### Sprint 19 — Lobby Deletion (Host + Admin)
+- **`DELETE /api/lobbies/:id`**: El host puede borrar su propio lobby (solo en estado `OPEN` o `CONFIRMING`). Borra participantes primero (FK constraint) y emite `lobby:deleted` vía WebSocket.
+- **`POST /api/admin/clear-lobbies`**: Solo ADMIN. Borra TODOS los lobbies, participantes y runs asociados. Emite `lobby:deleted` global para que todos los clientes se actualicen en tiempo real.
 
-### Bug fixes (Sprint 15-16)
+### Sprint 18 — Relic API Fix & Startup Refresh
+#### Problema
+- La API pública de WFCD devuelve `{ "relics": [...] }` pero el código esperaba un array directo → siempre tiraba `"Invalid API response format"` y caía al fallback hardcodeado.
+- El fallback hardcodeado estaba desactualizado (Neo A solo hasta A8, faltaban A9-A16 y cientos más).
+- El Railway deploy inicial no tenía webhook de GitHub configurado → los commits nuevos no gatillaban builds automáticos.
+
+#### Fixes aplicados
+| Archivo | Cambio |
+|---------|--------|
+| **`lib/relics-api.ts`** | Parseo corregido: ahora lee `body.relics` (el array anidado). Filtra eras inválidas (`Vanguard` no existe en Prisma). Fallback regenerado con datos completos de WFCD al 2026-06-30 (796 relics únicas vs 331 anteriores). |
+| **`lib/relics-api.ts`** | Tipo `era` cambiado de `string` a union type `RelicEra = 'Lith' \| 'Meso' \| 'Neo' \| 'Axi' \| 'Requiem'` para compatibilidad con Prisma. |
+| **`seed-relics.ts`** | `refreshRelicsFromAPI()` refactorizado a `createMany` + `skipDuplicates` (aprovecha `@@unique([era, name])` en Prisma, mucho más rápido que inserts individuales). |
+| **`index.ts`** | Agregada llamada a `refreshRelicsFromAPI()` después de `seedRelicsIfEmpty()` en cada startup. Así la DB se actualiza automáticamente al deployar. |
+| **Railway** | Reconectada integración GitHub → auto-deploy funcional. |
+
+#### Estado actual de reliquias
+- **Total en DB**: 796 (era 331)
+- **Neo A series**: A1–A16 completo (era solo A1–A8)
+- **Fuente**: WFCD Drops API con fallback hardcodeado actualizado
+- **Refresh automático**: al iniciar el server, y vía `POST /api/admin/refresh-relics`
+
+### Sprint 17 — Dynamic Relic API (original)
+- **Fuente de datos**: WFCD Warframe Drops API (`https://drops.warframestat.us/data/relics.json`), mantenida por la comunidad.
+- **`lib/relics-api.ts`**: Fetcher con cache en memoria (TTL 1 hora). Fallback hardcodeado si la API no responde.
+- **`routes/relics.ts`**: Endpoints `GET /api/relics`, `GET /api/relics/:era`, `POST /api/seed`, `POST /api/admin/refresh-relics`.
+- **Script SQL manual**: `scripts/generate-relics-sql.mjs` genera INSERTs idempotentes.
+
+### Bug fixes previos (Sprint 15-16)
 - **Radshare relic flash**: Al checkear radshare, se mostraba "No relics available" por un frame antes de cargar. Fix: setear `loadingRelics=true` sincrónicamente en el onChange.
 - **Rotation tooltip**: Agregado ícono `?` con tooltip explicativo ("4 rondas consecutivas rotando host").
 - **Railway build fix**: TypeScript se quejaba de tipo `RelicEra` en arrays hardcodeados. Fix: tipar con `type RelicSeed`.
@@ -415,6 +438,8 @@ model BanAppeal {
 | `CORS_ORIGIN` | `http://localhost:5173,https://warframeweb.pages.dev,https://*.warframeweb.pages.dev` |
 
 **Historial de Sprints previos:**
+- **Sprint 19 (Lobby Deletion)**: `DELETE /api/lobbies/:id` para que el host borre su lobby. `POST /api/admin/clear-lobbies` para que admin borre todos. Evento WebSocket `lobby:deleted` para actualización en tiempo real.
+- **Sprint 18 (Relic API fix + startup refresh)**: Fix parseo respuesta WFCD (`{relics: [...]}`). Fallback actualizado con datos completos (796 relics). `refreshRelicsFromAPI()` optimizado con `createMany` + `skipDuplicates`. Refresh automático en cada startup. Reconexión GitHub → Railway para auto-deploy.
 - **Sprint 17 (Relic API dinámica)**: Reemplazo de reliquias hardcodeadas por fetch dinámico desde WFCD Drops API (`drops.warframestat.us`). Cache en memoria con TTL 1h + fallback hardcodeado. Endpoint `POST /api/admin/refresh-relics` para actualizar desde el panel admin.
 - **Sprint 16 (User Management)**: Roles (USER/MODERATOR/ADMIN), warns, reputation tiers, permission helpers, admin endpoints para user management, frontend de gestión de usuarios.
 - **Sprint 15 (Fixes prod)**: CORS manual, login sin fetch, runtime URL detection, production guard. Fix radshare relic flash y tooltip de rotación.
@@ -503,3 +528,7 @@ model BanAppeal {
 | `Discord OAuth not configured` | `DISCORD_CLIENT_ID` no seteado en Railway | Agregar env vars en Railway Dashboard |
 | Login redirige a `localhost:5173` en vez de Cloudflare | `auth.ts` usaba `process.env.FRONTEND_URL` sin leer objeto `config` | Usar `config.FRONTEND_URL` que tiene default del schema Zod |
 | `tsc@2.0.4` no es TypeScript compiler | `npx tsc` instala paquete deprecado global | Usar `tsc` directamente (npm resuelve `./node_modules/.bin/tsc`) |
+| `{ era: string; name: string }[]` no asignable a `RelicCreateManyInput` | El tipo `era` era `string` en vez del union type `RelicEra` de Prisma | Definir `type RelicEra = 'Lith' \| 'Meso' \| 'Neo' \| 'Axi' \| 'Requiem'` en `relics-api.ts` |
+| `Invalid API response format` al fetchear reliquias | La API de WFCD devuelve `{"relics": [...]}` no un array directo | Parsear `body.relics`, no `body` directamente |
+| `Route POST:/api/admin/refresh-relics not found` | Railway no desplegó el código nuevo por falta de webhook GitHub | Reconectar integración GitHub en Railway Dashboard |
+| Railway no auto-deployea tras push a `main` | No hay webhooks configurados en el repo de GitHub | Ir a Railway Dashboard → Project → Settings → GitHub → conectar repo, o desde GitHub → Settings → Webhooks → agregar URL de Railway |
