@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 import { canModerate, canManageUsers, canChangeRole, getReputationTier } from '@warframe/shared';
+import { getIO } from '../plugins/socket.js';
 
 // ------------------------------------------------------------------
 // Middleware helpers
@@ -523,5 +524,39 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     });
 
     return reply.send({ message: 'Appeal denied' });
+  });
+
+  // ----------------------------------------------------------------
+  // POST /api/admin/clear-lobbies - Admin borra TODOS los lobbies
+  // ----------------------------------------------------------------
+  app.post('/api/admin/clear-lobbies', { preHandler: [requireAdmin] }, async (request, reply) => {
+    const io = getIO();
+
+    // Obtener todos los lobby IDs para notificar
+    const lobbyIds = await prisma.lobby.findMany({ select: { id: true } });
+    const ids = lobbyIds.map((l) => l.id);
+
+    // Notificar a todos los clientes
+    for (const lobbyId of ids) {
+      io.to(`lobby:${lobbyId}`).emit('lobby:deleted', { lobbyId });
+    }
+    io.emit('lobby:deleted', { lobbyIds: ids, clearedBy: 'admin' });
+
+    // Borrar participantes primero (FK constraint)
+    const { count: deletedParticipants } = await prisma.lobbyParticipant.deleteMany();
+    // Borrar runs asociados
+    const { count: deletedRuns } = await prisma.run.deleteMany({
+      where: { lobbyId: { not: null } },
+    });
+    // Borrar lobbies
+    const { count: deletedLobbies } = await prisma.lobby.deleteMany();
+
+    return reply.send({
+      success: true,
+      message: `Cleared ${deletedLobbies} lobbies, ${deletedParticipants} participants, ${deletedRuns} runs`,
+      deletedLobbies,
+      deletedParticipants,
+      deletedRuns,
+    });
   });
 }

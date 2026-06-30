@@ -858,6 +858,48 @@ export async function lobbyRoutes(app: FastifyInstance): Promise<void> {
 
     return reply.send({ success: true });
   });
+
+  // ----------------------------------------------------------------
+  // DELETE /api/lobbies/:id - El host borra su propio lobby
+  // ----------------------------------------------------------------
+  app.delete('/api/lobbies/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { userId } = request.body as { userId: string };
+
+    const lobby = await prisma.lobby.findUnique({
+      where: { id },
+      include: { participants: true },
+    });
+
+    if (!lobby) return reply.status(404).send({ error: 'Lobby not found' });
+
+    // Solo el host puede borrar el lobby
+    if (lobby.hostId !== userId) {
+      return reply.status(403).send({ error: 'Only the host can delete this lobby' });
+    }
+
+    // Solo se puede borrar en OPEN o CONFIRMING
+    if (lobby.status !== 'OPEN' && lobby.status !== 'CONFIRMING') {
+      return reply.status(400).send({ error: 'Can only delete lobby in OPEN or CONFIRMING state' });
+    }
+
+    // Notificar a los participantes antes de borrar
+    const io = getIO();
+    io.to(`lobby:${id}`).emit('lobby:deleted', { lobbyId: id });
+    io.emit('lobby:deleted', { lobbyId: id });
+
+    // Borrar participantes primero (FK constraint)
+    await prisma.lobbyParticipant.deleteMany({
+      where: { lobbyId: id },
+    });
+
+    // Borrar el lobby
+    await prisma.lobby.delete({
+      where: { id },
+    });
+
+    return reply.send({ success: true, message: 'Lobby deleted' });
+  });
 }
 
 // Helpers
