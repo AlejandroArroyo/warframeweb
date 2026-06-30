@@ -32,6 +32,7 @@ export default {
     confirmationProgress: 'Relic confirmation',
     emptySlot: 'Empty slot',
     kick: 'Kick',
+    delete: 'Delete',
     reportPlayer: 'Report {{username}}',
     startMission: 'Start Mission',
     refinement: 'Refinement',

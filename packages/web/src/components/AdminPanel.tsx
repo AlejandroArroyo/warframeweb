@@ -38,6 +38,21 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [appealHasMore, setAppealHasMore] = useState(false);
   const [appealFilter, setAppealFilter] = useState('PENDING');
 
+  const [clearing, setClearing] = useState(false);
+
+  const handleClearLobbies = async () => {
+    if (!window.confirm('¿Estás seguro de borrar TODOS los lobbies? Esta acción no se puede deshacer.')) return;
+    setClearing(true);
+    try {
+      const result = await api.clearAllLobbies();
+      flash(`✅ ${result.message}`, 'success');
+    } catch (err: any) {
+      flash(`❌ ${err.message || 'Error al borrar lobbies'}`, 'error');
+    } finally {
+      setClearing(false);
+    }
+  };
+
   const flash = (text: string, type: 'success' | 'error' = 'success') => {
     setActionMsg({ text, type });
     setTimeout(() => setActionMsg(null), 3000);
@@ -182,7 +197,16 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
             <h2 className="text-lg font-semibold text-white">Panel de Administración</h2>
             <p className="text-xs text-gray-500 mt-0.5">Gestión de reportes, baneos, apelaciones y usuarios</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-lg">✕</button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleClearLobbies}
+              disabled={clearing}
+              className="text-xs px-3 py-1.5 bg-red-900/50 hover:bg-red-800 text-red-300 rounded transition-colors disabled:opacity-50"
+            >
+              {clearing ? '...' : '🗑 Clear all lobbies'}
+            </button>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-lg">✕</button>
+          </div>
         </div>
 
         {/* Tabs */}

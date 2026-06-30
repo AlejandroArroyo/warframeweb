@@ -24,7 +24,7 @@ export default function LobbyDetail({ lobby, testUser, onError, onBack, onLobbyU
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportTargetUser, setReportTargetUser] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{ type: 'kick' | 'cancel' | 'leave'; targetUserId?: string } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'kick' | 'cancel' | 'leave' | 'delete'; targetUserId?: string } | null>(null);
 
   // Unirse al room del lobby al montar, salir al desmontar
   useEffect(() => {
@@ -180,6 +180,20 @@ export default function LobbyDetail({ lobby, testUser, onError, onBack, onLobbyU
       onLobbyUpdated(updated);
     } catch (err: any) {
       onError(err.message);
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handleDeleteWithConfirm = async () => {
+    if (!testUser) return;
+    setConfirmAction(null);
+    setActing(true);
+    try {
+      await api.deleteLobby(lobby.id, testUser.id);
+      onBack();
+    } catch (err: any) {
+      onError(err.message || 'Error al borrar lobby');
     } finally {
       setActing(false);
     }
@@ -525,6 +539,15 @@ export default function LobbyDetail({ lobby, testUser, onError, onBack, onLobbyU
               {t('lobby.cancel')}
             </button>
           )}
+          {isHost && (lobby.status === 'OPEN' || lobby.status === 'CONFIRMING') && (
+            <button
+              onClick={() => setConfirmAction({ type: 'delete' })}
+              disabled={acting}
+              className="py-2.5 px-4 bg-red-900/50 hover:bg-red-800 text-red-300 font-medium rounded-lg transition-colors"
+            >
+              🗑 {t('lobby.delete')}
+            </button>
+          )}
           {/* Volver atrás cuando está cerrado */}
           {(lobby.status === 'CLOSED' || lobby.status === 'CANCELLED') && (
             <button
@@ -543,16 +566,19 @@ export default function LobbyDetail({ lobby, testUser, onError, onBack, onLobbyU
           title={
             confirmAction.type === 'kick' ? 'Expulsar jugador' :
             confirmAction.type === 'cancel' ? 'Cancelar misión' :
+            confirmAction.type === 'delete' ? 'Borrar lobby' :
             'Salir del grupo'
           }
           message={
             confirmAction.type === 'kick' ? '¿Estás seguro de expulsar a este jugador?' :
             confirmAction.type === 'cancel' ? '¿Estás seguro? Esta acción no se puede deshacer.' :
+            confirmAction.type === 'delete' ? '¿Borrar el lobby definitivamente? Todos los participantes serán notificados.' :
             '¿Estás seguro de que quieres salir del grupo?'
           }
           confirmLabel={
             confirmAction.type === 'kick' ? 'Expulsar' :
             confirmAction.type === 'cancel' ? 'Cancelar misión' :
+            confirmAction.type === 'delete' ? 'Sí, borrar' :
             'Salir'
           }
           variant="danger"
@@ -561,6 +587,8 @@ export default function LobbyDetail({ lobby, testUser, onError, onBack, onLobbyU
               handleKick(confirmAction.targetUserId);
             } else if (confirmAction.type === 'cancel') {
               handleCancelWithConfirm();
+            } else if (confirmAction.type === 'delete') {
+              handleDeleteWithConfirm();
             } else if (confirmAction.type === 'leave') {
               handleLeaveWithConfirm();
             }

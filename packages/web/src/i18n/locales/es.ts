@@ -32,6 +32,7 @@ export default {
     confirmationProgress: 'Confirmación de reliquias',
     emptySlot: 'Hueco libre',
     kick: 'Expulsar',
+    delete: 'Borrar',
     reportPlayer: 'Reportar a {{username}}',
     startMission: 'Empezar misión',
     refinement: 'Refinamiento',

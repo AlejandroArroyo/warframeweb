@@ -275,6 +275,13 @@ export const api = {
       body: JSON.stringify({ userId, targetUserId }),
     }),
 
+  // Delete lobby (solo host)
+  deleteLobby: (lobbyId: string, userId: string) =>
+    request<{ success: boolean }>(`/lobbies/${lobbyId}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ userId }),
+    }),
+
   // Rotations
   startRotation: (lobbyId: string) =>
     request<{ groupId: string; totalRounds: number; lobby: LobbyDTO }>(`/lobbies/${lobbyId}/start-rotation`, {
@@ -331,5 +338,11 @@ export const api = {
     request<{ user: UserDTO }>('/users/settings', {
       method: 'PATCH',
       body: JSON.stringify(data),
+    }),
+
+  // Admin - Clear all lobbies
+  clearAllLobbies: () =>
+    request<{ success: boolean; message: string; deletedLobbies: number; deletedParticipants: number; deletedRuns: number }>('/admin/clear-lobbies', {
+      method: 'POST',
     }),
 };
