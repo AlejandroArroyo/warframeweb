@@ -860,7 +860,7 @@ export async function lobbyRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // ----------------------------------------------------------------
-  // DELETE /api/lobbies/:id - El host borra su propio lobby
+  // DELETE /api/lobbies/:id - El host borra su lobby (o admin cualquier lobby)
   // ----------------------------------------------------------------
   app.delete('/api/lobbies/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
@@ -873,20 +873,28 @@ export async function lobbyRoutes(app: FastifyInstance): Promise<void> {
 
     if (!lobby) return reply.status(404).send({ error: 'Lobby not found' });
 
-    // Solo el host puede borrar el lobby
-    if (lobby.hostId !== userId) {
-      return reply.status(403).send({ error: 'Only the host can delete this lobby' });
+    // Verificar si el usuario es admin
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    const isAdmin = user?.role === 'ADMIN';
+    const isHost = lobby.hostId === userId;
+
+    if (!isHost && !isAdmin) {
+      return reply.status(403).send({ error: 'Only the host or an admin can delete this lobby' });
     }
 
-    // Solo se puede borrar en OPEN o CONFIRMING
-    if (lobby.status !== 'OPEN' && lobby.status !== 'CONFIRMING') {
+    // El host solo puede borrar en OPEN o CONFIRMING; admin puede siempre
+    if (!isAdmin && lobby.status !== 'OPEN' && lobby.status !== 'CONFIRMING') {
       return reply.status(400).send({ error: 'Can only delete lobby in OPEN or CONFIRMING state' });
     }
 
     // Notificar a los participantes antes de borrar
     const io = getIO();
-    io.to(`lobby:${id}`).emit('lobby:deleted', { lobbyId: id });
-    io.emit('lobby:deleted', { lobbyId: id });
+    io.to(`lobby:${id}`).emit('lobby:deleted', { lobbyId: id, deletedBy: isAdmin ? 'admin' : 'host' });
+    io.emit('lobby:deleted', { lobbyId: id, deletedBy: isAdmin ? 'admin' : 'host' });
 
     // Borrar participantes primero (FK constraint)
     await prisma.lobbyParticipant.deleteMany({

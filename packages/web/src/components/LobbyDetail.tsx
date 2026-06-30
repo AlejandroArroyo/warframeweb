@@ -35,6 +35,7 @@ export default function LobbyDetail({ lobby, testUser, onError, onBack, onLobbyU
   }, [lobby.id]);
 
   const isHost = testUser && lobby.host.id === testUser.id;
+  const isAdmin = testUser?.role === 'ADMIN';
   const isParticipant = testUser && lobby.participants.some((p) => p.user.id === testUser.id);
   const myParticipation = testUser && lobby.participants.find((p) => p.user.id === testUser.id);
 
@@ -539,7 +540,7 @@ export default function LobbyDetail({ lobby, testUser, onError, onBack, onLobbyU
               {t('lobby.cancel')}
             </button>
           )}
-          {isHost && (lobby.status === 'OPEN' || lobby.status === 'CONFIRMING') && (
+          {(isHost || isAdmin) && (isAdmin || lobby.status === 'OPEN' || lobby.status === 'CONFIRMING') && (
             <button
               onClick={() => setConfirmAction({ type: 'delete' })}
               disabled={acting}
